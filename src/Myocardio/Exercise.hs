@@ -3,12 +3,14 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 module Myocardio.Exercise where
 
-import           Data.Aeson      (FromJSON, ToJSON)
-import           Data.Maybe      (Maybe)
-import           Data.Text       (Text)
-import           Data.Time.Clock (UTCTime)
-import           GHC.Generics    (Generic)
-import           Text.Show       (Show)
+import           Data.Aeson                     ( FromJSON
+                                                , ToJSON
+                                                )
+import           Data.Maybe                     ( Maybe )
+import           Data.Text                      ( Text )
+import           Data.Time.Clock                ( UTCTime )
+import           GHC.Generics                   ( Generic )
+import           Text.Show                      ( Show )
 
 data Exercise = Exercise {
     name     :: Text

@@ -3,11 +3,13 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 module Myocardio.Data where
 
-import           Data.Aeson         (FromJSON, ToJSON)
-import           Data.Text          (Text)
-import           GHC.Generics       (Generic)
-import           Myocardio.Exercise (Exercise)
-import           Text.Show          (Show)
+import           Data.Aeson                     ( FromJSON
+                                                , ToJSON
+                                                )
+import           Data.Text                      ( Text )
+import           GHC.Generics                   ( Generic )
+import           Myocardio.Exercise             ( Exercise )
+import           Text.Show                      ( Show )
 
 data Data = Data {
     categories :: [Text]

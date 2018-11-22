@@ -1,14 +1,16 @@
 {-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE OverloadedStrings #-}
 module Main where
 
-import           Data.Maybe         (Maybe (Nothing))
-import           Myocardio.Data     (Data (..))
-import           Myocardio.Exercise (Exercise (..))
-import           Myocardio.Json     (writeConfigFile)
-import           System.IO          (IO, putStrLn)
+import           Myocardio.Data                 ( Data(..) )
+import           Myocardio.Json                 ( readConfigFile )
+import           Myocardio.Ranking                 ( rankTime )
+import           System.IO                      ( IO
+                                                , print
+                                                )
+import Data.List(zip)
 
 main :: IO ()
 main = do
-  let d = Data ["endurance", "normal", "stretch"] ["glute medius", "abs", "lower back"] [Exercise "Glute Medius Leg Raises" ["glute medius"] "30" "normal" [] Nothing]
-  writeConfigFile d
+  cf <- readConfigFile
+  let exs = exercises cf
+  print (zip exs (rankTime exs))

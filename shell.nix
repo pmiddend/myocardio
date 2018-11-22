@@ -4,9 +4,9 @@ let
 
   inherit (nixpkgs) pkgs;
 
-  f = { mkDerivation, aeson, aeson-pretty, base, bytestring
-      , cabal-install, hlint, stdenv, stylish-haskell, text, time
-      , xdg-basedir
+  f = { mkDerivation, aeson, aeson-pretty, base, brittany
+      , bytestring, cabal-install, directory, hlint, semigroups, stdenv
+      , text, time, xdg-basedir
       }:
       mkDerivation {
         pname = "myocardio";
@@ -15,9 +15,10 @@ let
         isLibrary = false;
         isExecutable = true;
         executableHaskellDepends = [
-          aeson aeson-pretty base bytestring text time xdg-basedir
+          aeson aeson-pretty base bytestring directory semigroups text time
+          xdg-basedir
         ];
-        executableToolDepends = [ cabal-install hlint stylish-haskell ];
+        executableToolDepends = [ brittany cabal-install hlint ];
         homepage = "https://github.com/pmiddend/myocardio";
         description = "An ncurses tool magically generating workout plans";
         license = stdenv.lib.licenses.lgpl3;
