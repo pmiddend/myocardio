@@ -89,6 +89,7 @@ generateComplements as complement =
       rankRec r = case r of
         []  -> []
         [x] -> [x]
+        [x,y] -> [x,y]
         (x : xs') ->
           let xs :: NE.NonEmpty a
               xs = NE.fromList xs'

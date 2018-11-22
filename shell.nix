@@ -6,19 +6,22 @@ let
 
   f = { mkDerivation, aeson, aeson-pretty, base, bifunctors
       , brittany, bytestring, cabal-install, composition, directory
-      , hlint, semigroups, stdenv, text, time, xdg-basedir
+      , hlint, hspec, quickcheck-instances, semigroups, stdenv, text
+      , time, xdg-basedir
       }:
       mkDerivation {
         pname = "myocardio";
         version = "1.0";
         src = ./.;
-        isLibrary = false;
+        isLibrary = true;
         isExecutable = true;
-        executableHaskellDepends = [
+        libraryHaskellDepends = [
           aeson aeson-pretty base bifunctors bytestring composition directory
           semigroups text time xdg-basedir
         ];
-        executableToolDepends = [ brittany cabal-install hlint ];
+        libraryToolDepends = [ brittany cabal-install hlint ];
+        executableHaskellDepends = [ base ];
+        testHaskellDepends = [ base hspec quickcheck-instances ];
         homepage = "https://github.com/pmiddend/myocardio";
         description = "An ncurses tool magically generating workout plans";
         license = stdenv.lib.licenses.lgpl3;
