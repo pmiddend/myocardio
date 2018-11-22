@@ -2,6 +2,8 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 module Myocardio.Ranking where
 
+import           Data.Ord                       ( comparing )
+import           Data.Text                      ( Text )
 import           Data.Composition               ( (.:) )
 import           Data.Tuple                     ( uncurry
                                                 , fst
@@ -13,19 +15,14 @@ import           Data.Int                       ( Int )
 import           Data.Bool                      ( otherwise
                                                 , Bool
                                                 )
-import           Data.Eq                        ( (==)
-                                                , (/=)
-                                                )
+import           Data.Eq                        ( (==) )
 import           Data.Maybe                     ( Maybe(..)
-                                                , fromMaybe
                                                 , mapMaybe
                                                 , listToMaybe
                                                 , maybe
                                                 )
 import           Myocardio.Exercise             ( Exercise(dates, muscles) )
 import           Prelude                        ( realToFrac
-                                                , mod
-                                                , undefined
                                                 , Double
                                                 , (/)
                                                 , (*)
@@ -40,10 +37,13 @@ import           Data.Functor                   ( (<$>)
                                                 )
 import           Data.Function                  ( (.)
                                                 , const
+                                                , ($)
                                                 )
 import qualified Data.List.NonEmpty            as NE
 import           Data.List                      ( zipWith
                                                 , tail
+                                                , (\\)
+                                                , intersect
                                                 , length
                                                 )
 import           Data.Foldable                  ( minimum
@@ -87,9 +87,9 @@ generateComplements :: forall a . [a] -> (a -> NE.NonEmpty a -> Int) -> [a]
 generateComplements as complement =
   let rankRec :: [a] -> [a]
       rankRec r = case r of
-        []  -> []
-        [x] -> [x]
-        [x,y] -> [x,y]
+        []     -> []
+        [x]    -> [x]
+        [x, y] -> [x, y]
         (x : xs') ->
           let xs :: NE.NonEmpty a
               xs = NE.fromList xs'
@@ -102,21 +102,38 @@ generateComplements as complement =
 withoutIdx :: Int -> NE.NonEmpty a -> [a]
 withoutIdx = uncurry (<>) . second tail .: NE.splitAt
 
+exerciseComplement :: RankedExercise -> NE.NonEmpty RankedExercise -> Int
+exerciseComplement e rest
+  = let
+      em :: [Text]
+      em = (muscles . reExercise) e
+      groups :: NE.NonEmpty (NE.NonEmpty (Int, RankedExercise))
+      groups = NE.groupBy1
+        (\e1 e2 -> length (em `intersect` (muscles . reExercise . snd) e1)
+          == length (em `intersect` (muscles . reExercise . snd) e2)
+        )
+        (NE.zip (NE.fromList [0 ..]) rest)
+      sortedGroups :: NE.NonEmpty (NE.NonEmpty (Int, RankedExercise))
+      sortedGroups = NE.sortBy
+        (comparing
+          (\xs ->
+            length (em `intersect` muscles (reExercise (snd (NE.head xs))))
+          )
+        )
+        groups
+    in
+      fst
+      . NE.head
+      . NE.sortBy (comparing (reRank . snd))
+      . NE.head
+      $ sortedGroups
+
 reorderExercises :: [Exercise] -> [Exercise]
 reorderExercises exs =
   let ranked :: [RankedExercise]
       ranked = zipWith RankedExercise exs (rankExercises exs)
-      complement :: RankedExercise -> NE.NonEmpty RankedExercise -> Int
-      complement = undefined
-  in  reExercise <$> generateComplements ranked complement
+  in  reExercise <$> generateComplements ranked exerciseComplement
 
 indexOfFirst :: (a -> Bool) -> NE.NonEmpty a -> Maybe Int
 indexOfFirst p =
   (fst <$>) . listToMaybe . NE.filter (p . snd) . NE.zip (NE.fromList [0 ..])
-
-testComplement :: [Int]
-testComplement =
-  let f x ys
-        | x `mod` 2 == 0 = fromMaybe 0 (indexOfFirst ((/= 0) . (`mod` 2)) ys)
-        | otherwise      = fromMaybe 0 (indexOfFirst ((== 0) . (`mod` 2)) ys)
-  in  generateComplements ([1, 3, 5, 7, 2, 4, 6, 6] :: [Int]) f
