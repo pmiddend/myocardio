@@ -4,9 +4,9 @@ let
 
   inherit (nixpkgs) pkgs;
 
-  f = { mkDerivation, aeson, aeson-pretty, base, brittany
-      , bytestring, cabal-install, directory, hlint, semigroups, stdenv
-      , text, time, xdg-basedir
+  f = { mkDerivation, aeson, aeson-pretty, base, bifunctors
+      , brittany, bytestring, cabal-install, composition, directory
+      , hlint, semigroups, stdenv, text, time, xdg-basedir
       }:
       mkDerivation {
         pname = "myocardio";
@@ -15,8 +15,8 @@ let
         isLibrary = false;
         isExecutable = true;
         executableHaskellDepends = [
-          aeson aeson-pretty base bytestring directory semigroups text time
-          xdg-basedir
+          aeson aeson-pretty base bifunctors bytestring composition directory
+          semigroups text time xdg-basedir
         ];
         executableToolDepends = [ brittany cabal-install hlint ];
         homepage = "https://github.com/pmiddend/myocardio";
