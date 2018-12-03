@@ -2,7 +2,9 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 module Myocardio.Ranking where
 
-import           Data.Ord                       ( comparing )
+import           Data.Ord                       ( comparing
+                                                , Down(..)
+                                                )
 import           Data.Text                      ( Text )
 import           Data.Composition               ( (.:) )
 import           Data.Tuple                     ( uncurry
@@ -21,10 +23,11 @@ import           Data.Maybe                     ( Maybe(..)
                                                 , listToMaybe
                                                 , maybe
                                                 )
-import           Myocardio.Exercise             ( Exercise(dates, muscles) )
+import           Myocardio.Exercise             ( Exercise(last, muscles) )
 import           Prelude                        ( realToFrac
                                                 , Double
                                                 , (/)
+                                                , (-)
                                                 , (*)
                                                 , (+)
                                                 , fromIntegral
@@ -41,8 +44,8 @@ import           Data.Function                  ( (.)
                                                 )
 import qualified Data.List.NonEmpty            as NE
 import           Data.List                      ( zipWith
+                                                , sortOn
                                                 , tail
-                                                , (\\)
                                                 , intersect
                                                 , length
                                                 )
@@ -50,9 +53,6 @@ import           Data.Foldable                  ( minimum
                                                 , maximum
                                                 )
 import           Control.Arrow                  ( (&&&) )
-
-exerciseLastDate :: Exercise -> Maybe UTCTime
-exerciseLastDate = listToMaybe . dates
 
 exerciseGroups :: Exercise -> Int
 exerciseGroups = length . muscles
@@ -63,16 +63,16 @@ rankGroups = ((fromIntegral . exerciseGroups) <$>)
 rankTime :: [Exercise] -> [Double]
 rankTime exs =
   let minmax :: Maybe (UTCTime, UTCTime)
-      minmax =
-        (minimum &&& maximum) <$> NE.nonEmpty (mapMaybe exerciseLastDate exs)
+      minmax = (minimum &&& maximum) <$> NE.nonEmpty (mapMaybe last exs)
       lerp :: UTCTime -> UTCTime -> UTCTime -> Double
       lerp min max v
         | min == max = 0
-        | otherwise = realToFrac (diffUTCTime v min * 100 / diffUTCTime max min)
+        | otherwise = 100.0
+        - realToFrac (diffUTCTime v min * 100 / diffUTCTime max min)
       rank :: UTCTime -> UTCTime -> Maybe UTCTime -> Double
-      rank min max = maybe 0 (lerp min max)
+      rank min max = maybe 100 (lerp min max)
   in  maybe (const 0 <$> exs)
-            (\(min, max) -> rank min max <$> (exerciseLastDate <$> exs))
+            (\(min, max) -> rank min max <$> (last <$> exs))
             minmax
 
 data RankedExercise = RankedExercise {
@@ -131,7 +131,8 @@ exerciseComplement e rest
 reorderExercises :: [Exercise] -> [Exercise]
 reorderExercises exs =
   let ranked :: [RankedExercise]
-      ranked = zipWith RankedExercise exs (rankExercises exs)
+      ranked = sortOn (Down . reRank)
+                      (zipWith RankedExercise exs (rankExercises exs))
   in  reExercise <$> generateComplements ranked exerciseComplement
 
 indexOfFirst :: (a -> Bool) -> NE.NonEmpty a -> Maybe Int

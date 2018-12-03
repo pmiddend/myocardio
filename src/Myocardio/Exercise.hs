@@ -11,12 +11,13 @@ import           Data.Text                      ( Text )
 import           Data.Time.Clock                ( UTCTime )
 import           GHC.Generics                   ( Generic )
 import           Text.Show                      ( Show )
+import           Data.Eq                        ( Eq )
 
 data Exercise = Exercise {
     name     :: Text
   , muscles  :: [Text]
   , reps     :: Text
   , category :: Text
-  , dates    :: [UTCTime]
+  , last     :: Maybe UTCTime
   , tagged   :: Maybe UTCTime
-  } deriving(Generic, Show, ToJSON, FromJSON)
+  } deriving(Generic, Show, ToJSON, FromJSON, Eq)
