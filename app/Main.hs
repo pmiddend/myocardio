@@ -2,24 +2,24 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Main where
 
+import Myocardio.AppState
+import Myocardio.AppListType
+import Control.Monad.IO.Class(liftIO)
 import           Data.Functor                   ( (<$>) )
-import           Data.Tuple                     ( fst
-                                                , snd
-                                                )
 import           Data.Time.Clock                ( UTCTime
                                                 , getCurrentTime
                                                 )
 import           Data.Foldable                  ( foldMap )
 import           Prelude                        ( (+) )
-import           Myocardio.Data                 ( Data(..) )
+import           Myocardio.Data                 ( Data(..), exercisesL )
 import           Myocardio.FormatTime           ( formatTimeDiff )
 import           Myocardio.Json                 ( readConfigFile )
-import           Myocardio.Exercise             ( Exercise(..) )
+import           Myocardio.Exercise             ( Exercise(..), toggleTag )
 import           Myocardio.Ranking              ( reorderExercises )
 import           Myocardio.Util                 ( textShow )
+import           Myocardio.Endo                 ( Endo )
 import           Myocardio.ExerciseId           ( ExerciseId
                                                 , calculateIds
-                                                , exerciseIdLength
                                                 )
 import           Control.Applicative            ( pure )
 import           System.IO                      ( IO )
@@ -37,11 +37,10 @@ import           Brick.AttrMap                  ( AttrMap
                                                 , AttrName
                                                 , attrMap
                                                 )
-import           Brick.Widgets.List             ( listSelectedAttr
-                                                , listAttr
+import           Brick.Widgets.List             ( listSelectedAttr, listMoveDown, listMoveUp,
+                                                listAttr
+                                                , listSelected
                                                 , list
-                                                , handleListEvent
-                                                , List
                                                 , renderList
                                                 )
 import           Brick.Types                    ( Widget
@@ -78,6 +77,7 @@ import           Brick.Widgets.Core             ( str
                                                 )
 import           Data.Maybe                     ( isJust
                                                 , fromJust
+                                                , Maybe(Just, Nothing)
                                                 )
 import qualified Data.Vector                   as Vec
 import           Data.Bool                      ( Bool(..) )
@@ -88,6 +88,7 @@ import           Data.Text                      ( Text
                                                 , unpack
                                                 , length
                                                 )
+import Lens.Micro.Platform((&), (%~), ix, (^.))
 
 newtype ColumnSizes = ColumnSizes {
   getColSizes :: [Int]
@@ -101,12 +102,6 @@ instance Semigroup ColumnSizes where
 
 instance Monoid ColumnSizes where
   mempty = ColumnSizes [0..]
-
-data AppState = AppState {
-  stateList :: List () ExerciseId
-  , stateExercises :: [(ExerciseId, Exercise)]
-  , stateNow :: UTCTime
-  }
 
 applySizes :: ColumnSizes -> [Text] -> Text
 applySizes sizes cols =
@@ -128,11 +123,11 @@ listDrawElement now sizes exs isSelected exId =
       lastStr = foldMap (formatTimeDiff now) (last ex)
       taggedStr :: Text
       taggedStr = if isJust (tagged ex) then "*" else " "
-      row       = [textShow exId, name ex, reps ex, taggedStr, lastStr]
+      row       = [name ex, reps ex, taggedStr, lastStr]
   in  str (unpack (applySizes sizes row))
 
 headings :: [Text]
-headings = ["ID", "Name", "Reps", "T", "Last"]
+headings = ["Name", "Reps", "T", "Last"]
 
 headingSizes :: ColumnSizes
 headingSizes = ColumnSizes (length <$> headings)
@@ -140,25 +135,25 @@ headingSizes = ColumnSizes (length <$> headings)
 colSizes :: UTCTime -> [Exercise] -> ColumnSizes
 colSizes _ [] = mempty
 colSizes now exs =
-  let ids = calculateIds exs
-      sizeSingle :: (Exercise, ExerciseId) -> ColumnSizes
-      sizeSingle (ex, exid) = headingSizes <> ColumnSizes
-        [ exerciseIdLength exid
-        , length (name ex)
+  let sizeSingle :: Exercise -> ColumnSizes
+      sizeSingle ex = headingSizes <> ColumnSizes
+        [ length (name ex)
         , length (reps ex)
         , 1
         , getSum . foldMap (Sum . length . formatTimeDiff now) . last $ ex
         ]
-  in  foldMap sizeSingle (zip exs ids)
+  in  foldMap sizeSingle exs
 
 drawUI :: AppState -> [Widget ()]
 drawUI state = [ui]
  where
-  colSizes' = colSizes (stateNow state) (snd <$> stateExercises state)
+  exs = state ^. stateData . exercisesL
+  colSizes' = colSizes (state ^. stateNow) (state ^. stateData . exercisesL)
+  ids = calculateIds exs
   box       = renderList
-    (listDrawElement (stateNow state) colSizes' (stateExercises state))
+    (listDrawElement (state ^. stateNow) colSizes' (zip ids exs))
     True
-    (stateList state)
+    (state ^. stateList)
   ui = str (unpack (applySizes colSizes' headings)) <=> hCenter box
 
 
@@ -173,10 +168,21 @@ theMap = attrMap
   , (customAttr      , fg cyan)
   ]
 
+modifyList :: Endo AppListType -> AppState -> EventM () (Next AppState)
+modifyList f state = continue (state & stateList %~ f)
 
 appEvent :: AppState -> BrickEvent () e -> EventM () (Next AppState)
 appEvent l (VtyEvent e) = case e of
-  -- EvKey (KChar '+') [] ->
+  EvKey (KChar 'j') [] -> modifyList listMoveDown l
+  EvKey (KChar 'k') [] -> modifyList listMoveUp l
+  EvKey (KChar 'q') [] -> halt l
+  EvKey (KChar 't') [] -> 
+    case listSelected (l ^. stateList) of
+      Nothing -> continue l
+      Just idx -> do
+        now <- liftIO getCurrentTime
+        let newState = l & stateData . exercisesL . ix idx %~ toggleTag now
+        continue newState
   --   let el  = nextElement (listElements l)
   --       pos = Vec.length $ l ^. (listElementsL)
   --   in  continue $ listInsert pos el l
@@ -185,10 +191,8 @@ appEvent l (VtyEvent e) = case e of
   --   Nothing -> continue l
   --   Just i  -> continue $ listRemove i l
   EvKey KEsc [] -> halt l
+  _ -> continue l
 
-  ev            -> do
-    newList <- handleListEvent ev (stateList l)
-    continue (l { stateList = newList })
 appEvent l _ = continue l
 
 main :: IO ()
@@ -203,8 +207,6 @@ main = do
         , appAttrMap      = const theMap
         }
       exs          = reorderExercises (exercises configFile)
-      exsWithIds   = zip (calculateIds exs) exs
-      initialState = AppState (list () (Vec.fromList (fst <$> exsWithIds)) 1)
-                              exsWithIds
-                              now
+      ids = calculateIds exs
+      initialState = AppState (list () (Vec.fromList ids) 1) configFile now
   void $ defaultMain app initialState

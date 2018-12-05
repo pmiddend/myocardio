@@ -21,11 +21,11 @@ import           Data.Monoid                    ( (<>) )
 formatTimeDiff :: UTCTime -> UTCTime -> Text
 formatTimeDiff now utcTime =
   let daydiff :: Integer
-      daydiff = (diffDays `on` utctDay) utcTime now
+      daydiff = (diffDays `on` utctDay) now utcTime
   in  if daydiff == 0
         then "today"
         else if daydiff == 1
           then "yesterday"
           else if daydiff < 7
             then textShow daydiff <> " days ago"
-            else textShow (daydiff `div` 7) <> " week(s) ago"
+            else if daydiff < 14 then "a week ago" else textShow (daydiff `div` 7) <> " week(s) ago" 

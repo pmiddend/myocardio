@@ -50,13 +50,17 @@ cabal-version:       >=1.10
 
 executable myocardio
   -- .hs or .lhs file containing the Main module.
-  main-is:             src/Main.hs
+  main-is:             Main.hs
+  other-modules: Myocardio.AppListType
+               , Myocardio.AppState
+  hs-source-dirs:      app
   build-depends:       base >=4.11 && <4.12
                      , myocardio
                      , brick
                      , vty
                      , vector
-                     , microlens
+                     , microlens-platform
+                     , bifunctors
                      , time
                      , text
   ghc-options:       -threaded
@@ -78,6 +82,7 @@ library
   build-depends:       base >=4.11 && <4.12
                      , aeson
                      , aeson-pretty
+                     , microlens-platform
                      , xdg-basedir
                      -- for NonEmpty
                      , semigroups 

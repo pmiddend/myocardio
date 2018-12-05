@@ -6,9 +6,10 @@ let
 
   f = { mkDerivation, aeson, aeson-pretty, base, base16-bytestring
       , bifunctors, brick, brittany, bytestring, cabal-install
-      , composition, cryptohash-sha1, directory, hlint, hspec, microlens
-      , optparse-applicative, QuickCheck, quickcheck-instances
-      , semigroups, stdenv, text, time, vector, vty, xdg-basedir
+      , composition, cryptohash-sha1, directory, hlint, hspec
+      , microlens-platform, optparse-applicative, QuickCheck
+      , quickcheck-instances, semigroups, stdenv, text, time, vector, vty
+      , xdg-basedir
       }:
       mkDerivation {
         pname = "myocardio";
@@ -18,11 +19,13 @@ let
         isExecutable = true;
         libraryHaskellDepends = [
           aeson aeson-pretty base base16-bytestring bifunctors bytestring
-          composition cryptohash-sha1 directory optparse-applicative
-          semigroups text time xdg-basedir
+          composition cryptohash-sha1 directory microlens-platform
+          optparse-applicative semigroups text time xdg-basedir
         ];
         libraryToolDepends = [ brittany cabal-install hlint ];
-        executableHaskellDepends = [ base brick microlens vector vty ];
+        executableHaskellDepends = [
+          base bifunctors brick microlens-platform text time vector vty
+        ];
         testHaskellDepends = [
           base hspec QuickCheck quickcheck-instances time
         ];
