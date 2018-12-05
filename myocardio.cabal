@@ -53,14 +53,26 @@ executable myocardio
   main-is:             src/Main.hs
   build-depends:       base >=4.11 && <4.12
                      , myocardio
+                     , brick
+                     , vty
+                     , vector
+                     , microlens
+                     , time
+                     , text
+  ghc-options:       -threaded
   default-language:    Haskell2010
 
 library
   -- Modules included in this executable, other than Main.
   exposed-modules:     Myocardio.Exercise
                      , Myocardio.Data
+                     , Myocardio.Util
                      , Myocardio.Json
+                     , Myocardio.Endo
+                     , Myocardio.ExerciseId
                      , Myocardio.Ranking
+                     , Myocardio.FormatTime
+                     , Myocardio.Options
 
   -- Other library packages from which modules are imported.
   build-depends:       base >=4.11 && <4.12
@@ -74,9 +86,15 @@ library
                      -- for .:
                      , composition
                      , text
+                     -- for calculateId
+                     , cryptohash-sha1
+                     -- for calculateId
+                     , base16-bytestring
+                     -- for calculateId
                      , bytestring
                      , time
                      , directory
+                     , optparse-applicative
 
   -- Directories containing source files.
   hs-source-dirs:      src

@@ -4,10 +4,11 @@ let
 
   inherit (nixpkgs) pkgs;
 
-  f = { mkDerivation, aeson, aeson-pretty, base, bifunctors
-      , brittany, bytestring, cabal-install, composition, directory
-      , hlint, hspec, quickcheck-instances, semigroups, stdenv, text
-      , time, xdg-basedir
+  f = { mkDerivation, aeson, aeson-pretty, base, base16-bytestring
+      , bifunctors, brick, brittany, bytestring, cabal-install
+      , composition, cryptohash-sha1, directory, hlint, hspec, microlens
+      , optparse-applicative, QuickCheck, quickcheck-instances
+      , semigroups, stdenv, text, time, vector, vty, xdg-basedir
       }:
       mkDerivation {
         pname = "myocardio";
@@ -16,12 +17,15 @@ let
         isLibrary = true;
         isExecutable = true;
         libraryHaskellDepends = [
-          aeson aeson-pretty base bifunctors bytestring composition directory
+          aeson aeson-pretty base base16-bytestring bifunctors bytestring
+          composition cryptohash-sha1 directory optparse-applicative
           semigroups text time xdg-basedir
         ];
         libraryToolDepends = [ brittany cabal-install hlint ];
-        executableHaskellDepends = [ base ];
-        testHaskellDepends = [ base hspec quickcheck-instances ];
+        executableHaskellDepends = [ base brick microlens vector vty ];
+        testHaskellDepends = [
+          base hspec QuickCheck quickcheck-instances time
+        ];
         homepage = "https://github.com/pmiddend/myocardio";
         description = "An ncurses tool magically generating workout plans";
         license = stdenv.lib.licenses.lgpl3;
