@@ -53,12 +53,14 @@ executable myocardio
   main-is:             Main.hs
   other-modules: Myocardio.AppListType
                , Myocardio.AppState
+               , Myocardio.ResourceName
   hs-source-dirs:      app
   build-depends:       base >=4.11 && <4.12
                      , myocardio
                      , brick
                      , vty
                      , vector
+                     , text-zipper
                      , microlens-platform
                      , bifunctors
                      , time

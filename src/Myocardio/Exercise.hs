@@ -1,4 +1,5 @@
 {-# LANGUAGE DeriveAnyClass    #-}
+{-# LANGUAGE TemplateHaskell    #-}
 {-# LANGUAGE DeriveGeneric     #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 module Myocardio.Exercise where
@@ -15,6 +16,7 @@ import           Data.Eq                        ( Eq )
 import Data.Bool(otherwise, Bool)
 import Myocardio.Endo(Endo)
 import Data.Function((.))
+import Lens.Micro.Platform(makeLensesFor)
 
 data Exercise = Exercise {
     name     :: Text
@@ -24,6 +26,8 @@ data Exercise = Exercise {
   , last     :: Maybe UTCTime
   , tagged   :: Maybe UTCTime
   } deriving(Generic, Show, ToJSON, FromJSON, Eq)
+
+makeLensesFor [("name", "nameL"), ("muscles", "musclesL"),("reps", "repsL"),("category", "categoryL"),("last", "lastL"),("tagged", "taggedL")] ''Exercise
 
 isTagged :: Exercise -> Bool
 isTagged = isJust . tagged
