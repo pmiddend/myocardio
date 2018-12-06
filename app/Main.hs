@@ -221,7 +221,7 @@ switchExercises state newExs =
         state
           &  stateData
           .  exercisesL
-          .~ newExs
+          .~ newExs'
           &  stateList
           .  listElementsL
           .~ Vec.fromList ids
@@ -267,8 +267,7 @@ appEvent s (VtyEvent e) = case e of
           )
         )
   EvKey (KChar 'c') [] -> maybeEditor s e $ do
-    now <- liftIO getCurrentTime
-    s'  <- switchExercises s (commit now <$> (s ^. stateData . exercisesL))
+    s'  <- switchExercises s (commit <$> (s ^. stateData . exercisesL))
     continue s'
   EvKey (KChar 't') [] ->
     maybeEditor s e $ withCurrentElement s $ \_ idx -> do

@@ -36,6 +36,8 @@ toggleTag :: UTCTime -> Endo Exercise
 toggleTag now ex | isTagged ex = ex { tagged = Nothing }
                  | otherwise = ex { tagged = Just now }
 
-commit :: UTCTime -> Endo Exercise
-commit now ex | isTagged ex = ex { tagged = Nothing, last = Just now }
-              | otherwise = ex
+commit :: Endo Exercise
+commit ex =
+  case tagged ex of
+    Nothing -> ex
+    Just t -> ex { tagged = Nothing, last = Just t }
