@@ -63,7 +63,7 @@ executable myocardio
                      , bifunctors
                      , time
                      , text
-  ghc-options:       -threaded
+  ghc-options:       -threaded -Wall
   default-language:    Haskell2010
 
 library
@@ -103,6 +103,8 @@ library
 
   -- Directories containing source files.
   hs-source-dirs:      src
+
+  ghc-options: -Wall
 
   -- Base language which the package is written in.
   default-language:    Haskell2010

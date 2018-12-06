@@ -1,19 +1,16 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Myocardio.FormatTime where
 
-import Myocardio.Util(textShow)
-import           Prelude                        ( 
-                                                 Integer
+import           Myocardio.Util                 ( textShow )
+import           Prelude                        ( Integer
                                                 , div
                                                 )
 import           Data.Time.Clock                ( utctDay
                                                 , UTCTime
                                                 )
-import           Data.Text                      ( Text
-                                                )
+import           Data.Text                      ( Text )
 import           Data.Time.Calendar             ( diffDays )
-import           Data.Function                  ( on
-                                                )
+import           Data.Function                  ( on )
 import           Data.Eq                        ( (==) )
 import           Data.Ord                       ( (<) )
 import           Data.Monoid                    ( (<>) )
@@ -28,4 +25,6 @@ formatTimeDiff now utcTime =
           then "yesterday"
           else if daydiff < 7
             then textShow daydiff <> " days ago"
-            else if daydiff < 14 then "a week ago" else textShow (daydiff `div` 7) <> " week(s) ago" 
+            else if daydiff < 14
+              then "a week ago"
+              else textShow (daydiff `div` 7) <> " week(s) ago"

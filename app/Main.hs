@@ -2,21 +2,25 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Main where
 
-import Myocardio.AppState
-import Myocardio.AppListType
-import Control.Monad.IO.Class(liftIO)
+import           Myocardio.AppState
+import           Myocardio.AppListType
+import           Control.Monad.IO.Class         ( liftIO, MonadIO )
 import           Data.Functor                   ( (<$>) )
 import           Data.Time.Clock                ( UTCTime
                                                 , getCurrentTime
                                                 )
 import           Data.Foldable                  ( foldMap )
 import           Prelude                        ( (+) )
-import           Myocardio.Data                 ( Data(..), exercisesL )
+import           Myocardio.Data                 ( Data(..)
+                                                , exercisesL
+                                                )
 import           Myocardio.FormatTime           ( formatTimeDiff )
-import           Myocardio.Json                 ( readConfigFile )
-import           Myocardio.Exercise             ( Exercise(..), toggleTag )
+import           Myocardio.Json                 ( readConfigFile, writeConfigFile )
+import           Myocardio.Exercise             ( Exercise(..)
+                                                , toggleTag
+                                                , commit
+                                                )
 import           Myocardio.Ranking              ( reorderExercises )
-import           Myocardio.Util                 ( textShow )
 import           Myocardio.Endo                 ( Endo )
 import           Myocardio.ExerciseId           ( ExerciseId
                                                 , calculateIds
@@ -37,9 +41,11 @@ import           Brick.AttrMap                  ( AttrMap
                                                 , AttrName
                                                 , attrMap
                                                 )
-import           Brick.Widgets.List             ( listSelectedAttr, listMoveDown, listMoveUp,
-                                                listAttr
-                                                , listSelected
+import           Brick.Widgets.List             ( listSelectedAttr, listElementsL
+                                                , listSelectedL
+                                                , listMoveDown
+                                                , listMoveUp
+                                                , listAttr
                                                 , list
                                                 , renderList
                                                 )
@@ -88,7 +94,11 @@ import           Data.Text                      ( Text
                                                 , unpack
                                                 , length
                                                 )
-import Lens.Micro.Platform((&), (%~), ix, (^.))
+import           Lens.Micro.Platform            ( (&), (.~)
+                                                , (%~)
+                                                , ix
+                                                , (^.)
+                                                )
 
 newtype ColumnSizes = ColumnSizes {
   getColSizes :: [Int]
@@ -116,7 +126,7 @@ listDrawElement
   -> Bool
   -> ExerciseId
   -> Widget ()
-listDrawElement now sizes exs isSelected exId =
+listDrawElement now sizes exs _ exId =
   let ex :: Exercise
       ex = fromJust (lookup exId exs)
       lastStr :: Text
@@ -147,9 +157,9 @@ colSizes now exs =
 drawUI :: AppState -> [Widget ()]
 drawUI state = [ui]
  where
-  exs = state ^. stateData . exercisesL
+  exs       = state ^. stateData . exercisesL
   colSizes' = colSizes (state ^. stateNow) (state ^. stateData . exercisesL)
-  ids = calculateIds exs
+  ids       = calculateIds exs
   box       = renderList
     (listDrawElement (state ^. stateNow) colSizes' (zip ids exs))
     True
@@ -171,27 +181,32 @@ theMap = attrMap
 modifyList :: Endo AppListType -> AppState -> EventM () (Next AppState)
 modifyList f state = continue (state & stateList %~ f)
 
-appEvent :: AppState -> BrickEvent () e -> EventM () (Next AppState)
-appEvent l (VtyEvent e) = case e of
-  EvKey (KChar 'j') [] -> modifyList listMoveDown l
-  EvKey (KChar 'k') [] -> modifyList listMoveUp l
-  EvKey (KChar 'q') [] -> halt l
-  EvKey (KChar 't') [] -> 
-    case listSelected (l ^. stateList) of
-      Nothing -> continue l
-      Just idx -> do
-        now <- liftIO getCurrentTime
-        let newState = l & stateData . exercisesL . ix idx %~ toggleTag now
-        continue newState
-  --   let el  = nextElement (listElements l)
-  --       pos = Vec.length $ l ^. (listElementsL)
-  --   in  continue $ listInsert pos el l
+switchExercises :: MonadIO m => AppState -> [Exercise] -> m AppState
+switchExercises state newExs =
+  let newExs' = reorderExercises newExs
+      ids = calculateIds newExs'
+      newState = state & stateData . exercisesL .~ newExs
+                       & stateList . listElementsL .~ Vec.fromList ids
+  in do liftIO (writeConfigFile (newState ^. stateData))
+        pure newState
 
-  -- EvKey (KChar '-') [] -> case l ^. (listSelectedL) of
-  --   Nothing -> continue l
-  --   Just i  -> continue $ listRemove i l
-  EvKey KEsc [] -> halt l
-  _ -> continue l
+appEvent :: AppState -> BrickEvent () e -> EventM () (Next AppState)
+appEvent s (VtyEvent e) = case e of
+  EvKey (KChar 'j') [] -> modifyList listMoveDown s
+  EvKey (KChar 'k') [] -> modifyList listMoveUp s
+  EvKey (KChar 'q') [] -> halt s
+  EvKey (KChar 'c') [] -> do
+    now <- liftIO getCurrentTime
+    s' <- switchExercises s (commit now <$> (s ^. stateData . exercisesL))
+    continue s'
+  EvKey (KChar 't') [] -> case s ^. stateList . listSelectedL of
+    Nothing  -> continue s
+    Just idx -> do
+      now <- liftIO getCurrentTime
+      s' <- switchExercises s ((s ^. stateData . exercisesL) & ix idx %~ toggleTag now)
+      continue s'
+  EvKey KEsc [] -> halt s
+  _             -> continue s
 
 appEvent l _ = continue l
 
@@ -207,6 +222,6 @@ main = do
         , appAttrMap      = const theMap
         }
       exs          = reorderExercises (exercises configFile)
-      ids = calculateIds exs
+      ids          = calculateIds exs
       initialState = AppState (list () (Vec.fromList ids) 1) configFile now
   void $ defaultMain app initialState

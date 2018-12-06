@@ -12,8 +12,9 @@ import           Data.Time.Clock                ( UTCTime )
 import           GHC.Generics                   ( Generic )
 import           Text.Show                      ( Show )
 import           Data.Eq                        ( Eq )
-import Data.Bool(otherwise)
+import Data.Bool(otherwise, Bool)
 import Myocardio.Endo(Endo)
+import Data.Function((.))
 
 data Exercise = Exercise {
     name     :: Text
@@ -24,6 +25,13 @@ data Exercise = Exercise {
   , tagged   :: Maybe UTCTime
   } deriving(Generic, Show, ToJSON, FromJSON, Eq)
 
+isTagged :: Exercise -> Bool
+isTagged = isJust . tagged
+
 toggleTag :: UTCTime -> Endo Exercise
-toggleTag now ex | isJust (tagged ex) = ex { tagged = Nothing }
+toggleTag now ex | isTagged ex = ex { tagged = Nothing }
                  | otherwise = ex { tagged = Just now }
+
+commit :: UTCTime -> Endo Exercise
+commit now ex | isTagged ex = ex { tagged = Nothing, last = Just now }
+              | otherwise = ex
