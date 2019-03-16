@@ -66,6 +66,7 @@ As you can see, you have a list of muscle groups and categories and then a list 
 | j   | Go down a row (vim-style!)                       |
 | k   | Go up a row                                      |
 | c   | commit the plan (meaning you’re done exercising) |
+| r   | Type in a new repetition count                   |
 
 ** Installation/Usage
 
