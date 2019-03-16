@@ -54,6 +54,10 @@ The input is expected in JSON format at the location =$HOME/.config/myocardio/da
 
 As you can see, you have a list of muscle groups and categories and then a list of exercises. The format should be self-explanatory.
 
+** Screenshot
+
+[[./screenshot.png][Main screen]]
+
 ** Key bindings
 
 | Key | Binding                                          |
