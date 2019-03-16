@@ -22,7 +22,7 @@ let
           composition cryptohash-sha1 directory microlens-platform
           optparse-applicative semigroups text time xdg-basedir
         ];
-        libraryToolDepends = [ brittany cabal-install hlint ];
+        libraryToolDepends = [ cabal-install hlint ];
         executableHaskellDepends = [
           base bifunctors brick microlens-platform text time vector vty
         ];

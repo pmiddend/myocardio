@@ -70,7 +70,7 @@ rankTime exs =
         | otherwise = 100.0
         - realToFrac (diffUTCTime v min * 100 / diffUTCTime max min)
       rank :: UTCTime -> UTCTime -> Maybe UTCTime -> Double
-      rank min max = maybe 100 (lerp min max)
+      rank min max = maybe 150 (lerp min max)
   in  maybe (const 0 <$> exs)
             (\(min, max) -> rank min max <$> (last <$> exs))
             minmax

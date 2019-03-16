@@ -55,7 +55,7 @@ executable myocardio
                , Myocardio.AppState
                , Myocardio.ResourceName
   hs-source-dirs:      app
-  build-depends:       base >=4.11 && <4.12
+  build-depends:       base >=4.11 && <4.13
                      , myocardio
                      , brick
                      , vty
@@ -81,7 +81,7 @@ library
                      , Myocardio.Options
 
   -- Other library packages from which modules are imported.
-  build-depends:       base >=4.11 && <4.12
+  build-depends:       base >=4.11 && <4.13
                      , aeson
                      , aeson-pretty
                      , microlens-platform

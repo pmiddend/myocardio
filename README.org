@@ -1,0 +1,72 @@
+* myocardio – automagically generate and display split plans
+** How does it work
+
+myocardio is a small utility to generate exercise split plans for you. It recieves a list of exercises from you. For each exercise, you specify:
+
+- exercise name
+- which muscle groups are involved
+- how many repetitions you make
+
+The tool then generates and displays an exercise plan for you that /tries/ not to include exercises with big overlaps in muscle groups consecutively. It also prioritizes exercises that you haven’t done for some time.
+
+The input is expected in JSON format at the location =$HOME/.config/myocardio/data.json= and looks like this:
+
+#+BEGIN_SRC json
+{
+    "muscles": [
+        "glute medius",
+        "quadriceps",
+        "core",
+        "side core",
+        "balance",
+        "lower back",
+        "calves",
+        "gluteus maximus",
+        "neck",
+        "delta",
+        "triceps",
+        "hip flexor",
+        "pectoralis",
+        "rotators"
+    ],
+    "categories": [
+        "normal"
+    ],
+    "exercises": [
+        {
+            "muscles": [
+                "pectoralis",
+                "triceps",
+                "delta",
+                "core",
+                "quadriceps",
+                "hip flexor"
+            ],
+            "category": "normal",
+            "tagged": null,
+            "reps": "3x10",
+            "name": "Burpees",
+            "last": null
+        }
+    ]
+}
+#+END_SRC
+
+As you can see, you have a list of muscle groups and categories and then a list of exercises. The format should be self-explanatory.
+
+** Key bindings
+
+| Key | Binding                                          |
+|-----+--------------------------------------------------|
+| t   | tag an exercise (meaning you did it today)       |
+| j   | Go down a row (vim-style!)                       |
+| k   | Go up a row                                      |
+| c   | commit the plan (meaning you’re done exercising) |
+
+** Installation/Usage
+
+Just clone the repository and type:
+
+#+begin_example
+cabal new-run myocardio
+#+end_example

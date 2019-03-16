@@ -32,13 +32,13 @@ import           Myocardio.Exercise             ( Exercise(..)
                                                 , toggleTag
                                                 , commit
                                                 )
-import           Myocardio.Ranking              ( reorderExercises )
+import           Myocardio.Ranking              ( reorderExercises, rankExercises )
 import           Myocardio.Endo                 ( Endo )
 import           Myocardio.ExerciseId           ( ExerciseId
                                                 , calculateIds
                                                 )
 import           Control.Applicative            ( pure )
-import           System.IO                      ( IO )
+import           System.IO                      ( IO, print )
 import           Data.List                      ( zip
                                                 , filter
                                                 , zipWith
