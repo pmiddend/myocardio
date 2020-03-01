@@ -8,8 +8,8 @@ let
       , bifunctors, brick, brittany, bytestring, cabal-install
       , composition, cryptohash-sha1, directory, hlint, hspec
       , microlens-platform, optparse-applicative, QuickCheck
-      , quickcheck-instances, semigroups, stdenv, text, time, vector, vty
-      , xdg-basedir
+      , quickcheck-instances, semigroups, stdenv, text, text-zipper, time
+      , vector, vty, xdg-basedir
       }:
       mkDerivation {
         pname = "myocardio";
@@ -22,9 +22,10 @@ let
           composition cryptohash-sha1 directory microlens-platform
           optparse-applicative semigroups text time xdg-basedir
         ];
-        libraryToolDepends = [ cabal-install hlint ];
+        libraryToolDepends = [ brittany cabal-install hlint ];
         executableHaskellDepends = [
-          base bifunctors brick microlens-platform text time vector vty
+          base bifunctors brick microlens-platform text text-zipper time
+          vector vty
         ];
         testHaskellDepends = [
           base hspec QuickCheck quickcheck-instances time
