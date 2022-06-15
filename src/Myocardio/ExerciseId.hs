@@ -1,40 +1,47 @@
 module Myocardio.ExerciseId where
 
-import           Data.List                      ( zip
-                                                , nub
-                                                , filter
-                                                , length
-                                                , head
-                                                )
-import           Data.Function                  ( (.)
-                                                , on
-                                                )
-import           Prelude                        ( )
+import Crypto.Hash.SHA1 (hash)
+import Data.Bifunctor (first)
+import Data.Bool (Bool)
+import Data.ByteString.Base16 (encode)
+import Data.Eq
+  ( Eq,
+    (==),
+  )
+import Data.Function
+  ( on,
+    (.),
+  )
+import Data.Functor ((<$>))
+import Data.Int (Int)
+import Data.List
+  ( filter,
+    head,
+    length,
+    nub,
+    zip,
+  )
+import Data.Ord (Ord)
+import Data.Text
+  ( Text,
+    take,
+    unpack,
+  )
 import qualified Data.Text as T
-import           Data.Text                      ( Text, unpack
-                                                , take
-                                                )
-import           Text.Show                      ( Show(..) )
-import           Data.Ord                       ( Ord )
-import           Myocardio.Exercise             ( Exercise(name) )
-import           Data.Functor                   ( (<$>) )
-import           Data.Text.Encoding             ( encodeUtf8
-                                                , decodeUtf8
-                                                )
-import           Data.ByteString.Base16         ( encode )
-import           Crypto.Hash.SHA1               ( hash )
-import           Myocardio.Endo                 ( Endo )
-import           Data.Bifunctor                 ( first )
-import           Data.Tuple                     ( fst )
-import           Data.Eq                        ( Eq
-                                                , (==)
-                                                )
-import Data.Int(Int)
-import Data.Bool(Bool)
+import Data.Text.Encoding
+  ( decodeUtf8,
+    encodeUtf8,
+  )
+import Data.Tuple (fst)
+import Myocardio.Endo (Endo)
+import Myocardio.Exercise (Exercise (name))
+import Text.Show (Show (..))
+import Prelude ()
 
-newtype ExerciseId = ExerciseId {
-  getExId :: Text
-  } deriving(Eq, Ord)
+newtype ExerciseId = ExerciseId
+  { getExId :: Text
+  }
+  deriving (Eq, Ord)
 
 instance Show ExerciseId where
   show = unpack . getExId
@@ -58,4 +65,4 @@ calculateIds exs =
       cutHashes i = (first (takeId i) <$>)
       hashesUnique :: [(ExerciseId, Exercise)] -> Bool
       hashesUnique = listUnique . (fst <$>)
-  in  fst <$> head (filter hashesUnique ((`cutHashes` hashes) <$> [1 ..]))
+   in fst <$> head (filter hashesUnique ((`cutHashes` hashes) <$> [1 ..]))

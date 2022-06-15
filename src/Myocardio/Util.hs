@@ -1,13 +1,15 @@
 module Myocardio.Util where
 
-import Prelude()
-import Data.Function((.))
-import           Text.Show                      ( Show
-                                                , show
-                                                )
-import           Data.Text                      ( Text
-                                                , pack
-                                                )
+import Data.Function ((.))
+import Data.Text
+  ( Text,
+    pack,
+  )
+import Text.Show
+  ( Show,
+    show,
+  )
+import Prelude ()
 
 textShow :: Show a => a -> Text
 textShow = pack . show

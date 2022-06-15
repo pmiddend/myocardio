@@ -1,0 +1,58 @@
+name:                myocardio
+version:             2.0.0
+github:              "pmiddend/myocardio"
+license:             BSD3
+author:              "Philipp Middendorf"
+maintainer:          "pmidden@mailbox.org"
+copyright:           "2022 Philipp Middendorf"
+
+extra-source-files:
+- README.org
+
+description:         Please see the README on GitHub at <https://github.com/pmiddend/myocardio#readme>
+
+dependencies:
+- base >= 4.7 && < 5
+- brick
+- vty
+- vector
+- text-zipper
+- microlens-platform
+- bifunctors
+- time
+- text
+- aeson
+- aeson-pretty
+- xdg-basedir
+- semigroups
+- cryptohash-sha1
+- base16-bytestring
+- directory
+- optparse-applicative
+- bytestring
+- composition
+
+library:
+  source-dirs: src
+
+executables:
+  myocardio-exe:
+    main:                Main.hs
+    source-dirs:         app
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - myocardio
+
+tests:
+  myocardio-test:
+    main:                Spec.hs
+    source-dirs:         test-suite
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - myocardio
