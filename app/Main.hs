@@ -41,16 +41,6 @@ import Brick.Widgets.Edit
     handleEditorEvent,
     renderEditor,
   )
-import Brick.Widgets.List
-  ( list,
-    listAttr,
-    listElementsL,
-    listMoveDown,
-    listMoveUp,
-    listSelectedAttr,
-    listSelectedL,
-    renderList,
-  )
 import Control.Applicative (pure)
 import Control.Monad (void)
 import Control.Monad.IO.Class
@@ -73,6 +63,7 @@ import Data.List
     lookup,
     zip,
     zipWith,
+    sort
   )
 import Data.Maybe
   ( Maybe (Just, Nothing),
@@ -136,6 +127,7 @@ import Myocardio.Exercise
   ( Exercise (..),
     commit,
     repsL,
+    musclesL,
     toggleTag,
   )
 import Myocardio.ExerciseId
@@ -154,7 +146,7 @@ import System.IO (IO, print)
 import Prelude (Show (show), subtract, (+))
 
 headings :: [Text]
-headings = ["Name", "Reps", "Done?", "Last Execution"]
+headings = ["Name", "Reps", "Done?", "Last Execution", "Groups"]
 
 exerciseRows :: AppState -> [[Text]]
 exerciseRows s = makeRow <$> reorderExercises (s ^. stateData . exercisesL)
@@ -167,7 +159,7 @@ exerciseRows s = makeRow <$> reorderExercises (s ^. stateData . exercisesL)
             Just last' -> formatTimeDiff (s ^. stateNow) last'
           taggedStr :: Text
           taggedStr = if isJust (tagged ex) then "*" else " "
-       in [name ex, reps ex, taggedStr, lastStr]
+       in [name ex, reps ex, taggedStr, lastStr, Text.intercalate "," (sort $ ex ^. musclesL)]
 
 drawUI :: AppState -> [Widget ResourceName]
 drawUI state = [ui]
@@ -191,16 +183,11 @@ drawUI state = [ui]
                   (state ^. stateEditor)
             )
 
-customAttr :: AttrName
-customAttr = listSelectedAttr <> "custom"
-
 theMap :: AttrMap
 theMap =
   attrMap
     defAttr
-    [ (listAttr, white `on` blue),
-      (listSelectedAttr, blue `on` white),
-      (Table.selectedAttr, fg cyan)
+    [ (Table.selectedAttr, fg cyan)
     ]
 
 switchExercises :: MonadIO m => AppState -> [Exercise] -> m AppState
