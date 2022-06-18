@@ -32,6 +32,7 @@ library
       Myocardio.Json
       Myocardio.Options
       Myocardio.Ranking
+      Myocardio.TablePure
       Myocardio.Util
   other-modules:
       Paths_myocardio
@@ -46,6 +47,7 @@ library
     , brick
     , bytestring
     , composition
+    , containers
     , cryptohash-sha1
     , directory
     , microlens-platform
@@ -78,6 +80,7 @@ executable myocardio-exe
     , brick
     , bytestring
     , composition
+    , containers
     , cryptohash-sha1
     , directory
     , microlens-platform
@@ -110,6 +113,7 @@ test-suite myocardio-test
     , brick
     , bytestring
     , composition
+    , containers
     , cryptohash-sha1
     , directory
     , microlens-platform
