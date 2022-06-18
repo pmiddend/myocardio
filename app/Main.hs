@@ -23,7 +23,8 @@ import Brick.Types
     cursorLocationName,
   )
 import Brick.Util
-  ( fg,
+  ( clamp,
+    fg,
     on,
   )
 import Brick.Widgets.Center (hCenter)
@@ -58,7 +59,7 @@ import Control.Monad.IO.Class
   )
 import Data.Bool (Bool (..))
 import Data.Eq ((==))
-import Data.Foldable (foldMap)
+import Data.Foldable (find, foldMap)
 import Data.Function
   ( const,
     ($),
@@ -68,6 +69,7 @@ import Data.Functor ((<$>))
 import Data.Int (Int)
 import Data.List
   ( filter,
+    length,
     lookup,
     zip,
     zipWith,
@@ -89,11 +91,12 @@ import Data.Semigroup (Semigroup (..))
 import Data.Text
   ( Text,
     justifyLeft,
-    length,
     strip,
     unlines,
     unwords,
   )
+import qualified Data.Text as Text
+import Data.Text.IO (appendFile)
 import Data.Text.Zipper
   ( clearZipper,
     getText,
@@ -146,81 +149,41 @@ import Myocardio.Json
   )
 import Myocardio.Ranking (rankExercises, reorderExercises)
 import Myocardio.ResourceName
+import qualified Myocardio.TablePure as Table
 import System.IO (IO, print)
-import Prelude ((+))
-
-newtype ColumnSizes = ColumnSizes
-  { getColSizes :: [Int]
-  }
-
-colSizeApply :: (Int -> Int -> Int) -> ColumnSizes -> ColumnSizes -> ColumnSizes
-colSizeApply f (ColumnSizes a) (ColumnSizes b) = ColumnSizes (zipWith f a b)
-
-instance Semigroup ColumnSizes where
-  (<>) = colSizeApply max
-
-instance Monoid ColumnSizes where
-  mempty = ColumnSizes [0 ..]
-
-applySizes :: ColumnSizes -> [Text] -> Text
-applySizes sizes cols =
-  let just :: Int -> Text -> Text
-      just i = justifyLeft (i + 1) ' '
-   in unwords (zipWith just (getColSizes sizes) cols)
-
-listDrawElement ::
-  UTCTime ->
-  ColumnSizes ->
-  [(ExerciseId, Exercise)] ->
-  Bool ->
-  ExerciseId ->
-  Widget ResourceName
-listDrawElement now sizes exs _ exId =
-  let ex :: Exercise
-      ex = fromJust (lookup exId exs)
-      lastStr :: Text
-      lastStr = foldMap (formatTimeDiff now) (last ex)
-      taggedStr :: Text
-      taggedStr = if isJust (tagged ex) then "*" else " "
-      row = [name ex, reps ex, taggedStr, lastStr]
-   in txt (applySizes sizes row)
+import Prelude (Show (show), subtract, (+))
 
 headings :: [Text]
-headings = ["Name", "Reps", "T", "Last"]
+headings = ["Name", "Reps", "Done?", "Last Execution"]
 
-headingSizes :: ColumnSizes
-headingSizes = ColumnSizes (length <$> headings)
-
-colSizes :: UTCTime -> [Exercise] -> ColumnSizes
-colSizes _ [] = mempty
-colSizes now exs =
-  let sizeSingle :: Exercise -> ColumnSizes
-      sizeSingle ex =
-        headingSizes
-          <> ColumnSizes
-            [ length (name ex),
-              length (reps ex),
-              1,
-              getSum . foldMap (Sum . length . formatTimeDiff now) . last $ ex
-            ]
-   in foldMap sizeSingle exs
+exerciseRows :: AppState -> [[Text]]
+exerciseRows s = makeRow <$> reorderExercises (s ^. stateData . exercisesL)
+  where
+    makeRow ex =
+      let lastStr :: Text
+          -- lastStr = foldMap (formatTimeDiff (s ^. stateNow)) (last ex)
+          lastStr = case last ex of
+            Nothing -> " "
+            Just last' -> formatTimeDiff (s ^. stateNow) last'
+          taggedStr :: Text
+          taggedStr = if isJust (tagged ex) then "*" else " "
+       in [name ex, reps ex, taggedStr, lastStr]
 
 drawUI :: AppState -> [Widget ResourceName]
 drawUI state = [ui]
   where
-    exs = state ^. stateData . exercisesL
-    colSizes' = colSizes (state ^. stateNow) (state ^. stateData . exercisesL)
-    ids = calculateIds exs
     box =
-      renderList
-        (listDrawElement (state ^. stateNow) colSizes' (zip ids exs))
-        True
-        (state ^. stateList)
+      Table.render
+        NameList
+        headings
+        (exerciseRows state)
+        (state ^. stateTableCursor)
+        (Table.Alignments mempty mempty Table.AlignLeft Table.AlignTop)
+        (Table.Borders False Table.OnlyHeader True)
     editorHeading =
       if state ^. stateEditorFocus then txt "Reps: " else emptyWidget
     ui =
-      txt (applySizes colSizes' headings)
-        <=> hCenter box
+      hCenter box
         <=> ( editorHeading
                 <+> renderEditor
                   (txt . unlines)
@@ -237,12 +200,8 @@ theMap =
     defAttr
     [ (listAttr, white `on` blue),
       (listSelectedAttr, blue `on` white),
-      (customAttr, fg cyan)
+      (Table.selectedAttr, fg cyan)
     ]
-
-modifyList ::
-  Endo AppListType -> AppState -> EventM ResourceName (Next AppState)
-modifyList f state = continue (state & stateList %~ f)
 
 switchExercises :: MonadIO m => AppState -> [Exercise] -> m AppState
 switchExercises state newExs =
@@ -253,91 +212,100 @@ switchExercises state newExs =
           & stateData
             . exercisesL
           .~ newExs'
-          & stateList
-            . listElementsL
-          .~ Vec.fromList ids
    in do
         liftIO (writeConfigFile (newState ^. stateData))
         pure newState
 
-maybeEditor ::
-  AppState ->
-  Event ->
-  EventM ResourceName (Next AppState) ->
-  EventM ResourceName (Next AppState)
-maybeEditor s e f =
-  if s ^. stateEditorFocus
-    then do
-      newEditor <- handleEditorEvent e (s ^. stateEditor)
-      continue (s & stateEditor .~ newEditor)
-    else f
+withCurrentExercise :: AppState -> (Exercise -> Int -> EventM ResourceName (Next AppState)) -> EventM ResourceName (Next AppState)
+withCurrentExercise s f =
+  let idx = s ^. stateTableCursor
+   in f (s ^?! stateData . exercisesL . ix idx) idx
 
-withCurrentElement :: AppState -> (Exercise -> Int -> EventM ResourceName (Next AppState)) -> EventM ResourceName (Next AppState)
-withCurrentElement s f =
-  case s ^. stateList . listSelectedL of
-    Nothing -> continue s
-    Just idx -> f (s ^?! stateData . exercisesL . ix idx) idx
+log :: MonadIO m => Text -> m ()
+log logText = do
+  now <- liftIO getCurrentTime
+  liftIO $ appendFile "/tmp/log.txt" (Text.pack (show now) <> ": " <> logText <> "\n")
+
+handleGlobalEvent s (VtyEvent e) = case e of
+  EvKey (KChar 'r') [] ->
+    withCurrentExercise s $ \selectedElement _ ->
+      continue
+        ( s & stateEditorFocus .~ True & stateEditor
+            %~ applyEdit
+              ( const
+                  ( gotoEOL
+                      ( textZipper
+                          [selectedElement ^. repsL]
+                          (Just 1)
+                      )
+                  )
+              )
+        )
+  EvKey (KChar 'c') [] -> do
+    s' <- switchExercises s (commit <$> (s ^. stateData . exercisesL))
+    continue s'
+  EvKey (KChar 'q') [] -> halt s
+  EvKey (KChar 't') [] -> do
+    withCurrentExercise s $ \_ idx -> do
+      now <- liftIO getCurrentTime
+      s' <-
+        switchExercises
+          s
+          ((s ^. stateData . exercisesL) & ix idx %~ toggleTag now)
+      continue s'
+  _ -> continue s
+handleGlobalEvent s _ = continue s
+
+confirmsEditor (VtyEvent (EvKey KEnter [])) = True
+confirmsEditor _ = False
+
+terminatesEditor (VtyEvent (EvKey KEsc [])) = True
+terminatesEditor _ = False
+
+handleEditorEvent' (VtyEvent e) s = handleEditorEvent e s
+handleEditorEvent' _ s = pure s
+
+modifyCursorPosition :: AppState -> (Int -> Int) -> Int -> Int
+modifyCursorPosition s f current = clamp 0 (length (s ^. stateData . exercisesL)) (f current)
+
+handleTableEvent :: AppState -> BrickEvent ResourceName e -> EventM ResourceName (Maybe AppState)
+handleTableEvent s (VtyEvent (EvKey (KChar 'j') [])) = pure (Just (s & stateTableCursor %~ modifyCursorPosition s (+ 1)))
+handleTableEvent s (VtyEvent (EvKey (KChar 'k') [])) = pure (Just (s & stateTableCursor %~ modifyCursorPosition s (subtract 1)))
+handleTableEvent _ _ = pure Nothing
 
 appEvent ::
   AppState ->
   BrickEvent ResourceName e ->
   EventM ResourceName (Next AppState)
-appEvent s (VtyEvent e) = case e of
-  EvKey (KChar 'j') [] -> maybeEditor s e (modifyList listMoveDown s)
-  EvKey (KChar 'k') [] -> maybeEditor s e (modifyList listMoveUp s)
-  EvKey (KChar 'q') [] -> maybeEditor s e (halt s)
-  EvKey (KChar 'r') [] ->
-    maybeEditor s e $
-      withCurrentElement s $ \selectedElement _ ->
-        continue
-          ( s & stateEditorFocus .~ True & stateEditor
-              %~ applyEdit
-                ( const
-                    ( gotoEOL
-                        ( textZipper
-                            [selectedElement ^. repsL]
-                            (Just 1)
-                        )
-                    )
-                )
-          )
-  EvKey (KChar 'c') [] -> maybeEditor s e $ do
-    s' <- switchExercises s (commit <$> (s ^. stateData . exercisesL))
-    continue s'
-  EvKey (KChar 't') [] ->
-    maybeEditor s e $
-      withCurrentElement s $ \_ idx -> do
-        now <- liftIO getCurrentTime
-        s' <-
-          switchExercises
-            s
-            ((s ^. stateData . exercisesL) & ix idx %~ toggleTag now)
-        continue s'
-  EvKey KEnter [] ->
-    if s ^. stateEditorFocus
-      then withCurrentElement s $ \_ idx -> do
-        let editContent :: Text
-            editContent = s ^. stateEditor . editContentsL . to (strip . unlines . getText)
-            newExs :: [Exercise]
-            newExs = (s ^. stateData . exercisesL) & ix idx . repsL .~ editContent
-        s' <- switchExercises s newExs
-        continue (s' & stateEditorFocus .~ False & stateEditor %~ applyEdit clearZipper)
-      else continue s
-  EvKey KEsc [] ->
-    if s ^. stateEditorFocus
-      then
-        continue
-          (s & stateEditorFocus .~ False & stateEditor %~ applyEdit clearZipper)
-      else halt s
-  _ -> maybeEditor s e (continue s)
-appEvent s _ = continue s
+appEvent s e =
+  if s ^. stateEditorFocus
+    then
+      if confirmsEditor e
+        then withCurrentExercise s $ \_ idx -> do
+          let editContent :: Text
+              editContent = s ^. stateEditor . editContentsL . to (strip . unlines . getText)
+              newExs :: [Exercise]
+              newExs = (s ^. stateData . exercisesL) & ix idx . repsL .~ editContent
+          s' <- switchExercises s newExs
+          continue (s' & stateEditorFocus .~ False & stateEditor %~ applyEdit clearZipper)
+        else
+          if terminatesEditor e
+            then continue (s & stateEditorFocus .~ False & stateEditor %~ applyEdit clearZipper)
+            else do
+              newEditor <- handleEditorEvent' e (s ^. stateEditor)
+              continue (s & stateEditor .~ newEditor)
+    else do
+      newTable <- handleTableEvent s e
+      case newTable of
+        Just newTable' -> continue newTable'
+        Nothing -> handleGlobalEvent s e
 
 appCursor ::
   AppState ->
   [CursorLocation ResourceName] ->
   Maybe (CursorLocation ResourceName)
 appCursor s cl =
-  let filterList x = listToMaybe (filter ((== Just x) . cursorLocationName) cl)
+  let filterList x = find ((== Just x) . cursorLocationName) cl
    in filterList (if s ^. stateEditorFocus then NameEditor else NameList)
 
 main :: IO ()
@@ -352,11 +320,9 @@ main = do
             appStartEvent = pure,
             appAttrMap = const theMap
           }
-      exs = reorderExercises (exercises configFile)
-      ids = calculateIds exs
       initialState =
         AppState
-          (list NameList (Vec.fromList ids) 1)
+          0
           (editorText NameEditor (Just 1) "")
           configFile
           now
