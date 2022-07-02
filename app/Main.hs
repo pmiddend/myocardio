@@ -61,9 +61,9 @@ import Data.List
   ( filter,
     length,
     lookup,
+    sort,
     zip,
     zipWith,
-    sort
   )
 import Data.Maybe
   ( Maybe (Just, Nothing),
@@ -103,9 +103,16 @@ import Graphics.Vty
   ( Event (..),
     Key (..),
     blue,
+    brightGreen,
+    brightRed,
+    brightYellow,
     cyan,
     defAttr,
     white,
+    withStyle,
+    bold,
+    blink,
+    standout
   )
 import Lens.Micro.Platform
   ( ix,
@@ -126,8 +133,8 @@ import Myocardio.Endo (Endo)
 import Myocardio.Exercise
   ( Exercise (..),
     commit,
-    repsL,
     musclesL,
+    repsL,
     toggleTag,
   )
 import Myocardio.ExerciseId
@@ -135,6 +142,7 @@ import Myocardio.ExerciseId
     calculateIds,
   )
 import Myocardio.FormatTime (formatTimeDiff)
+import Myocardio.Human (FrontOrBack (..), Muscle (..), MuscleWithTrainingState (..), TrainingState (..), generateHumanMarkup)
 import Myocardio.Json
   ( readConfigFile,
     writeConfigFile,
@@ -153,7 +161,6 @@ exerciseRows s = makeRow <$> reorderExercises (s ^. stateData . exercisesL)
   where
     makeRow ex =
       let lastStr :: Text
-          -- lastStr = foldMap (formatTimeDiff (s ^. stateNow)) (last ex)
           lastStr = case last ex of
             Nothing -> " "
             Just last' -> formatTimeDiff (s ^. stateNow) last'
@@ -162,7 +169,7 @@ exerciseRows s = makeRow <$> reorderExercises (s ^. stateData . exercisesL)
        in [name ex, reps ex, taggedStr, lastStr, Text.intercalate "," (sort $ ex ^. musclesL)]
 
 drawUI :: AppState -> [Widget ResourceName]
-drawUI state = [ui]
+drawUI state = [humanUi]
   where
     box =
       Table.render
@@ -172,22 +179,36 @@ drawUI state = [ui]
         (state ^. stateTableCursor)
         (Table.Alignments mempty mempty Table.AlignLeft Table.AlignTop)
         (Table.Borders False Table.OnlyHeader True)
-    editorHeading =
-      if state ^. stateEditorFocus then txt "Reps: " else emptyWidget
+    footer =
+      if state ^. stateEditorFocus
+        then ((txt "Reps: ") <+> renderEditor (txt . unlines) (state ^. stateEditorFocus) (state ^. stateEditor))
+        else txt "[r]: edit reps [jk]: next/prev [t]: set done [c]: finished [q]: quit"
     ui =
-      hCenter box
-        <=> ( editorHeading
-                <+> renderEditor
-                  (txt . unlines)
-                  (state ^. stateEditorFocus)
-                  (state ^. stateEditor)
-            )
+      hCenter box <=> footer
+    musclesWithTrainingState =
+      [ MuscleWithTrainingState GluteusMaximus Bad,
+        MuscleWithTrainingState Neck Good,
+        MuscleWithTrainingState Triceps Medium
+      ]
+    human = generateHumanMarkup musclesWithTrainingState trainingStateToAttr
+    humanFront = human Front
+    humanBack = human Back
+    humanUi = humanFront <+> humanBack
+
+trainingStateToAttr :: TrainingState -> AttrName
+trainingStateToAttr Good = "muscleGood"
+trainingStateToAttr Medium = "muscleMedium"
+trainingStateToAttr Bad = "muscleBad"
 
 theMap :: AttrMap
 theMap =
-  attrMap
+  let baseStyle = standout
+  in attrMap
     defAttr
-    [ (Table.selectedAttr, fg cyan)
+    [ (Table.selectedAttr, fg cyan),
+      (trainingStateToAttr Good, fg brightGreen `withStyle` baseStyle),
+      (trainingStateToAttr Medium, fg brightYellow  `withStyle` baseStyle),
+      (trainingStateToAttr Bad, fg brightRed  `withStyle` baseStyle)
     ]
 
 switchExercises :: MonadIO m => AppState -> [Exercise] -> m AppState

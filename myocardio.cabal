@@ -29,10 +29,13 @@ library
       Myocardio.Exercise
       Myocardio.ExerciseId
       Myocardio.FormatTime
+      Myocardio.Human
       Myocardio.Json
+      Myocardio.Markup
       Myocardio.Options
       Myocardio.Ranking
       Myocardio.TablePure
+      Myocardio.TextMarkup
       Myocardio.Util
   other-modules:
       Paths_myocardio
@@ -50,6 +53,7 @@ library
     , containers
     , cryptohash-sha1
     , directory
+    , microlens
     , microlens-platform
     , optparse-applicative
     , semigroups
@@ -83,6 +87,7 @@ executable myocardio-exe
     , containers
     , cryptohash-sha1
     , directory
+    , microlens
     , microlens-platform
     , myocardio
     , optparse-applicative
@@ -116,6 +121,8 @@ test-suite myocardio-test
     , containers
     , cryptohash-sha1
     , directory
+    , hspec
+    , microlens
     , microlens-platform
     , myocardio
     , optparse-applicative

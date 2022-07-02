@@ -18,6 +18,7 @@ dependencies:
 - vector
 - text-zipper
 - microlens-platform
+- microlens
 - bifunctors
 - time
 - text
@@ -57,3 +58,4 @@ tests:
     - -with-rtsopts=-N
     dependencies:
     - myocardio
+    - hspec
