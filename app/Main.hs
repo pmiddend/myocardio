@@ -112,7 +112,8 @@ import Graphics.Vty
     withStyle,
     bold,
     blink,
-    standout
+    standout,
+    underline
   )
 import Lens.Micro.Platform
   ( ix,
@@ -202,13 +203,12 @@ trainingStateToAttr Bad = "muscleBad"
 
 theMap :: AttrMap
 theMap =
-  let baseStyle = standout
-  in attrMap
+  attrMap
     defAttr
     [ (Table.selectedAttr, fg cyan),
-      (trainingStateToAttr Good, fg brightGreen `withStyle` baseStyle),
-      (trainingStateToAttr Medium, fg brightYellow  `withStyle` baseStyle),
-      (trainingStateToAttr Bad, fg brightRed  `withStyle` baseStyle)
+      (trainingStateToAttr Good, fg brightGreen `withStyle` underline),
+      (trainingStateToAttr Medium, fg brightYellow  `withStyle` standout),
+      (trainingStateToAttr Bad, fg brightRed  `withStyle` standout)
     ]
 
 switchExercises :: MonadIO m => AppState -> [Exercise] -> m AppState
