@@ -5,12 +5,12 @@ module Myocardio.Json where
 import Control.Applicative (pure)
 import Control.Exception (catchJust)
 import Control.Monad (guard, (>>=))
-import Data.Aeson (decodeFileStrict)
+import Data.Aeson (decodeFileStrict, eitherDecodeFileStrict)
 import Data.Aeson.Encode.Pretty (encodePretty)
 import Data.Bool (Bool (True))
 import Data.ByteString.Lazy (writeFile)
 import Data.Function ((.))
-import Data.Maybe (Maybe (Nothing), fromJust, fromMaybe)
+import Data.Maybe (Maybe (Nothing, Just), fromJust, fromMaybe)
 import Myocardio.Data (Data, emptyData)
 import System.Directory (createDirectoryIfMissing)
 import System.Environment.XDG.BaseDir
@@ -22,6 +22,8 @@ import System.IO
     IO,
   )
 import System.IO.Error (isDoesNotExistError)
+import Data.Either (Either(Right, Left))
+import Prelude (error)
 
 appName :: FilePath
 appName = "myocardio"
@@ -36,8 +38,10 @@ readConfigFile :: IO Data
 readConfigFile = do
   mkConfigDir
   fn <- configFileName
-  maybeResult <- catchJust (guard . isDoesNotExistError) (decodeFileStrict fn) (\_ -> pure Nothing)
-  pure (fromMaybe emptyData maybeResult)
+  maybeResult <- catchJust (guard . isDoesNotExistError) (eitherDecodeFileStrict fn) (\_ -> pure (Right emptyData))
+  case maybeResult of
+    Left e -> error e
+    Right v -> pure v
 
 writeConfigFile :: Data -> IO ()
 writeConfigFile d = do
