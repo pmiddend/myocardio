@@ -19,9 +19,9 @@ import Brick.Types
     CursorLocation,
     EventM,
     Next,
+    Padding (Pad),
     Widget,
     cursorLocationName,
-    Padding(Pad)
   )
 import Brick.Util
   ( clamp,
@@ -30,13 +30,13 @@ import Brick.Util
 import Brick.Widgets.Border (vBorder)
 import Brick.Widgets.Center (hCenter)
 import Brick.Widgets.Core
-  ( fill,
+  ( emptyWidget,
+    fill,
+    padRight,
     txt,
     withAttr,
     (<+>),
     (<=>),
-    emptyWidget,
-    padRight
   )
 import Brick.Widgets.Edit
   ( applyEdit,
@@ -63,7 +63,9 @@ import Data.Functor ((<$>))
 import Data.Int (Int)
 import Data.List
   ( length,
-    sort, sortBy, sortOn
+    sort,
+    sortBy,
+    sortOn,
   )
 import Data.Maybe
   ( Maybe (Just, Nothing),
@@ -100,16 +102,19 @@ import Graphics.Vty
 import Lens.Micro.Platform
   ( ix,
     to,
+    view,
     (%~),
     (&),
     (.~),
     (^.),
-    (^?!), view,
+    (^?!),
   )
 import Myocardio.AppState
-  ( AppState (AppState),
+  ( AppPage (PageMain, PageMuscles),
+    AppState (AppState),
     stateData,
     stateEditor,
+    statePage,
     stateEditorFocus,
     stateNow,
     stateTableCursor,
@@ -132,9 +137,9 @@ import Myocardio.Json
   ( readConfigFile,
     writeConfigFile,
   )
-import Myocardio.Ranking (reorderExercises, buildMusclesWithTrainingState)
-import Myocardio.Muscle (Muscle(GluteusMaximus, Neck,Triceps), muscleToText)
-import Myocardio.MuscleWithTrainingState (MuscleWithTrainingState(MuscleWithTrainingState), trainingStateL)
+import Myocardio.Muscle (Muscle (GluteusMaximus, Neck, Triceps), muscleToText)
+import Myocardio.MuscleWithTrainingState (MuscleWithTrainingState (MuscleWithTrainingState), trainingStateL)
+import Myocardio.Ranking (buildMusclesWithTrainingState, reorderExercises)
 import Myocardio.ResourceName (ResourceName (NameEditor, NameList))
 import qualified Myocardio.TablePure as Table
 import Myocardio.TrainingState (TrainingState (Bad, Good, Medium))
@@ -159,8 +164,8 @@ exerciseRows s = makeRow <$> reorderExercises (s ^. stateData . exercisesL)
 stack :: [Widget n] -> Widget n
 stack = foldr (<=>) emptyWidget
 
-humanUI :: AppState -> [Widget ResourceName]
-humanUI s =
+pageMuscles :: AppState -> [Widget ResourceName]
+pageMuscles s =
   let musclesWithTrainingState = buildMusclesWithTrainingState (s ^. stateNow) (s ^. stateData . exercisesL)
       human = generateHumanMarkup musclesWithTrainingState trainingStateToAttr
       humanFront = human Front
@@ -172,8 +177,7 @@ humanUI s =
       muscleList = txt "Muscles:" <=> txt "" <=> stack muscleWidgets
    in [humanFront <+> divider <+> humanBack <+> padRight (Pad 1) divider <+> muscleList]
 
-drawUI :: AppState -> [Widget ResourceName]
-drawUI state = humanUI state
+pageMain state = [hCenter box <=> footer]
   where
     box =
       Table.render
@@ -187,8 +191,12 @@ drawUI state = humanUI state
       if state ^. stateEditorFocus
         then txt "Reps: " <+> renderEditor (txt . unlines) (state ^. stateEditorFocus) (state ^. stateEditor)
         else txt "[r]: edit reps [jk]: next/prev [t]: set done [c]: finished [q]: quit"
-    ui =
-      hCenter box <=> footer
+
+drawUI :: AppState -> [Widget ResourceName]
+drawUI state =
+  case state ^. statePage of
+    PageMain -> pageMain state
+    PageMuscles -> pageMuscles state
 
 trainingStateToAttr :: TrainingState -> AttrName
 trainingStateToAttr Good = "muscleGood"
@@ -327,6 +335,7 @@ main = do
           0
           (editorText NameEditor (Just 1) "")
           configFile
+          PageMain
           now
           False
   void $ defaultMain app initialState
