@@ -32,10 +32,13 @@ library
       Myocardio.Human
       Myocardio.Json
       Myocardio.Markup
+      Myocardio.Muscle
+      Myocardio.MuscleWithTrainingState
       Myocardio.Options
       Myocardio.Ranking
       Myocardio.TablePure
       Myocardio.TextMarkup
+      Myocardio.TrainingState
       Myocardio.Util
   other-modules:
       Paths_myocardio

@@ -2,8 +2,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 
 module Myocardio.Human
-  ( TrainingState (..),
-    generateHumanMarkup,
+  ( generateHumanMarkup,
     MuscleWithTrainingState (..),
     Muscle (..),
     FrontOrBack (..),
@@ -11,26 +10,38 @@ module Myocardio.Human
 where
 
 import Brick (Widget)
+import Data.Eq (Eq ((/=)))
+import Data.Functor ((<$>))
+import Data.Int (Int)
 import Data.List (intersperse)
+import Data.Monoid (Monoid (mconcat))
 import Data.Text (Text)
 import Lens.Micro (ix, (%~), (&))
 import Myocardio.Markup (GetAttr, Markup, fromText, markup, markupSet)
-import Prelude(Num ((-), (+)), Foldable (foldr))
-import Data.Eq (Eq ((/=)))
-import Data.Ord (Ord)
-import Text.Show (Show)
-import Data.Int (Int)
-import Data.Monoid (Monoid (mconcat))
-import Data.Functor ((<$>))
+import Myocardio.Muscle
+  ( Muscle
+      ( BackQuadriceps,
+        Calves,
+        Core,
+        Delta,
+        GluteusMaximus,
+        GluteusMedius,
+        Hamstrings,
+        HipFlexor,
+        LowerBack,
+        Neck,
+        Pecs,
+        Quadriceps,
+        Rotators,
+        SideCore,
+        Triceps,
+        UpperBack
+      ),
+  )
+import Prelude (Foldable (foldr), Num ((+), (-)))
+import Myocardio.TrainingState (TrainingState)
+import Myocardio.MuscleWithTrainingState (MuscleWithTrainingState(MuscleWithTrainingState))
 
-data TrainingState = Good | Medium | Bad deriving (Eq, Ord, Show)
-
-data Muscle = GluteusMaximus | Triceps | Neck deriving (Eq, Ord, Show)
-
-data MuscleWithTrainingState = MuscleWithTrainingState
-  { muscle :: Muscle,
-    trainingState :: TrainingState
-  }
 
 type CharacterImage = [Text]
 
@@ -87,9 +98,9 @@ humanMatrixBack =
   ]
 
 data LineSpan = LineSpan
-  { yCoord :: Int,
-    xCoordBeginInclusive :: Int,
-    xCoordEndInclusive :: Int
+  { _yCoord :: Int,
+    _xCoordBeginInclusive :: Int,
+    _xCoordEndInclusive :: Int
   }
 
 data FrontOrBack = Front | Back
@@ -99,14 +110,27 @@ characterImageForDirection Front = humanMatrixFront
 characterImageForDirection Back = humanMatrixBack
 
 data LineSpansWithFrontOrBack = LineSpansWithFrontOrBack
-  { frontOrBack :: FrontOrBack,
-    lineSpans :: [LineSpan]
+  { _frontOrBack :: FrontOrBack,
+    _lineSpans :: [LineSpan]
   }
 
 muscleToSpans :: Muscle -> LineSpansWithFrontOrBack
 muscleToSpans GluteusMaximus = LineSpansWithFrontOrBack Back [LineSpan 14 8 11, LineSpan 14 13 15, LineSpan 15 8 11, LineSpan 15 13 15]
-muscleToSpans Triceps = LineSpansWithFrontOrBack Back [LineSpan 8 4 4, LineSpan 9 3 3, LineSpan 10 2 2, LineSpan 8 18 18, LineSpan 9 19 19, LineSpan 10 20 20]
+muscleToSpans GluteusMedius = LineSpansWithFrontOrBack Back []
+muscleToSpans Quadriceps = LineSpansWithFrontOrBack Front []
+muscleToSpans Core = LineSpansWithFrontOrBack Front []
+muscleToSpans SideCore = LineSpansWithFrontOrBack Front []
+muscleToSpans LowerBack = LineSpansWithFrontOrBack Back []
+muscleToSpans UpperBack = LineSpansWithFrontOrBack Back []
+muscleToSpans Calves = LineSpansWithFrontOrBack Back []
 muscleToSpans Neck = LineSpansWithFrontOrBack Front [LineSpan 6 11 12]
+muscleToSpans Delta = LineSpansWithFrontOrBack Front []
+muscleToSpans Triceps = LineSpansWithFrontOrBack Back [LineSpan 8 4 4, LineSpan 9 3 3, LineSpan 10 2 2, LineSpan 8 18 18, LineSpan 9 19 19, LineSpan 10 20 20]
+muscleToSpans HipFlexor = LineSpansWithFrontOrBack Front []
+muscleToSpans Pecs = LineSpansWithFrontOrBack Front []
+muscleToSpans Rotators = LineSpansWithFrontOrBack Front []
+muscleToSpans BackQuadriceps = LineSpansWithFrontOrBack Back []
+muscleToSpans Hamstrings = LineSpansWithFrontOrBack Back []
 
 applyToIdx :: Int -> (a -> a) -> [a] -> [a]
 applyToIdx idx f xs = xs & ix idx %~ f
@@ -119,7 +143,7 @@ generateHumanMarkup muscles trainingStateToMarkup direction =
       -- Apply markup to specific line span in image
       spanTransducer :: a -> LineSpan -> [Markup a] -> [Markup a]
       spanTransducer trainingStateMarkup (LineSpan row colBegin colEnd) =
-        applyToIdx (row-1) (markupSet (colBegin, colEnd - colBegin + 1) trainingStateMarkup)
+        applyToIdx (row - 1) (markupSet (colBegin, colEnd - colBegin + 1) trainingStateMarkup)
       -- 1. unpack line spans for a single muscle
       -- 2. fold spans with image, fixing markup due to muscle state
       transducer :: MuscleWithTrainingState -> [Markup a] -> [Markup a]

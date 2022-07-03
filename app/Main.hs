@@ -21,19 +21,23 @@ import Brick.Types
     Next,
     Widget,
     cursorLocationName,
+    Padding(Pad)
   )
 import Brick.Util
   ( clamp,
     fg,
   )
+import Brick.Widgets.Border (vBorder)
 import Brick.Widgets.Center (hCenter)
 import Brick.Widgets.Core
-  ( txt,
+  ( fill,
+    txt,
+    withAttr,
     (<+>),
     (<=>),
-    withBorderStyle
+    emptyWidget,
+    padRight
   )
-import Brick.Widgets.Border.Style(unicode)
 import Brick.Widgets.Edit
   ( applyEdit,
     editContentsL,
@@ -49,7 +53,7 @@ import Control.Monad.IO.Class
   )
 import Data.Bool (Bool (False, True))
 import Data.Eq ((==))
-import Data.Foldable (find)
+import Data.Foldable (find, foldr)
 import Data.Function
   ( const,
     ($),
@@ -59,7 +63,7 @@ import Data.Functor ((<$>))
 import Data.Int (Int)
 import Data.List
   ( length,
-    sort,
+    sort, sortBy, sortOn
   )
 import Data.Maybe
   ( Maybe (Just, Nothing),
@@ -100,10 +104,10 @@ import Lens.Micro.Platform
     (&),
     (.~),
     (^.),
-    (^?!),
+    (^?!), view,
   )
 import Myocardio.AppState
-  ( AppState(AppState),
+  ( AppState (AppState),
     stateData,
     stateEditor,
     stateEditorFocus,
@@ -112,7 +116,7 @@ import Myocardio.AppState
   )
 import Myocardio.Data (exercisesL)
 import Myocardio.Exercise
-  ( Exercise (last, tagged, name, reps),
+  ( Exercise (last, name, reps, tagged),
     commit,
     musclesL,
     repsL,
@@ -120,14 +124,20 @@ import Myocardio.Exercise
   )
 import Myocardio.ExerciseId (calculateIds)
 import Myocardio.FormatTime (formatTimeDiff)
-import Myocardio.Human (FrontOrBack (Back, Front), Muscle (GluteusMaximus, Neck, Triceps), MuscleWithTrainingState (MuscleWithTrainingState), TrainingState (Bad, Good, Medium), generateHumanMarkup)
+import Myocardio.Human
+  ( FrontOrBack (Back, Front),
+    generateHumanMarkup,
+  )
 import Myocardio.Json
   ( readConfigFile,
     writeConfigFile,
   )
-import Myocardio.Ranking (reorderExercises)
+import Myocardio.Ranking (reorderExercises, buildMusclesWithTrainingState)
+import Myocardio.Muscle (Muscle(GluteusMaximus, Neck,Triceps), muscleToText)
+import Myocardio.MuscleWithTrainingState (MuscleWithTrainingState(MuscleWithTrainingState), trainingStateL)
 import Myocardio.ResourceName (ResourceName (NameEditor, NameList))
 import qualified Myocardio.TablePure as Table
+import Myocardio.TrainingState (TrainingState (Bad, Good, Medium))
 import System.IO (IO)
 import Prelude (Show (show), subtract, (+))
 
@@ -144,19 +154,23 @@ exerciseRows s = makeRow <$> reorderExercises (s ^. stateData . exercisesL)
             Just last' -> formatTimeDiff (s ^. stateNow) last'
           taggedStr :: Text
           taggedStr = if isJust (tagged ex) then "*" else " "
-       in [name ex, reps ex, taggedStr, lastStr, Text.intercalate "," (sort $ ex ^. musclesL)]
+       in [name ex, reps ex, taggedStr, lastStr, Text.intercalate "," (muscleToText <$> sort (ex ^. musclesL))]
+
+stack :: [Widget n] -> Widget n
+stack = foldr (<=>) emptyWidget
 
 humanUI :: AppState -> [Widget ResourceName]
-humanUI _ =
-  let musclesWithTrainingState =
-        [ MuscleWithTrainingState GluteusMaximus Bad,
-          MuscleWithTrainingState Neck Good,
-          MuscleWithTrainingState Triceps Medium
-        ]
+humanUI s =
+  let musclesWithTrainingState = buildMusclesWithTrainingState (s ^. stateNow) (s ^. stateData . exercisesL)
       human = generateHumanMarkup musclesWithTrainingState trainingStateToAttr
       humanFront = human Front
       humanBack = human Back
-   in [humanFront <+> humanBack]
+      divider = vBorder
+      muscleMarkedUp :: MuscleWithTrainingState -> Widget ResourceName
+      muscleMarkedUp (MuscleWithTrainingState m ts) = withAttr (trainingStateToAttr ts) (txt (muscleToText m))
+      muscleWidgets = muscleMarkedUp <$> sortOn (view trainingStateL) musclesWithTrainingState
+      muscleList = txt "Muscles:" <=> txt "" <=> stack muscleWidgets
+   in [humanFront <+> divider <+> humanBack <+> padRight (Pad 1) divider <+> muscleList]
 
 drawUI :: AppState -> [Widget ResourceName]
 drawUI state = humanUI state
@@ -171,7 +185,7 @@ drawUI state = humanUI state
         (Table.Borders False Table.OnlyHeader True)
     footer =
       if state ^. stateEditorFocus
-        then ((txt "Reps: ") <+> renderEditor (txt . unlines) (state ^. stateEditorFocus) (state ^. stateEditor))
+        then txt "Reps: " <+> renderEditor (txt . unlines) (state ^. stateEditorFocus) (state ^. stateEditor)
         else txt "[r]: edit reps [jk]: next/prev [t]: set done [c]: finished [q]: quit"
     ui =
       hCenter box <=> footer
