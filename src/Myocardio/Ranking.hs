@@ -1,14 +1,11 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 
-module Myocardio.Ranking where
+module Myocardio.Ranking(rankExercises, reorderExercises) where
 
 import Control.Arrow ((&&&))
 import Data.Bifunctor (second)
-import Data.Bool
-  ( Bool,
-    otherwise,
-  )
+import Data.Bool (otherwise)
 import Data.Composition ((.:))
 import Data.Eq ((==))
 import Data.Foldable
@@ -34,14 +31,13 @@ import Data.List
   )
 import qualified Data.List.NonEmpty as NE
 import Data.Maybe
-  ( Maybe (..),
-    listToMaybe,
+  ( Maybe,
     mapMaybe,
     maybe,
   )
 import Data.Monoid ((<>))
 import Data.Ord
-  ( Down (..),
+  ( Down (Down),
     comparing,
   )
 import Data.Text (Text)
@@ -150,7 +146,3 @@ reorderExercises exs =
           (Down . reRank)
           (zipWith RankedExercise exs (rankExercises exs))
    in reExercise <$> generateComplements ranked exerciseComplement
-
-indexOfFirst :: (a -> Bool) -> NE.NonEmpty a -> Maybe Int
-indexOfFirst p =
-  (fst <$>) . listToMaybe . NE.filter (p . snd) . NE.zip (NE.fromList [0 ..])

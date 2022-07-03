@@ -12,11 +12,16 @@ where
 
 import Brick (Widget)
 import Data.List (intersperse)
-import qualified Data.Map as M
-import Data.Monoid (mconcat)
 import Data.Text (Text)
 import Lens.Micro (ix, (%~), (&))
 import Myocardio.Markup (GetAttr, Markup, fromText, markup, markupSet)
+import Prelude(Num ((-), (+)), Foldable (foldr))
+import Data.Eq (Eq ((/=)))
+import Data.Ord (Ord)
+import Text.Show (Show)
+import Data.Int (Int)
+import Data.Monoid (Monoid (mconcat))
+import Data.Functor ((<$>))
 
 data TrainingState = Good | Medium | Bad deriving (Eq, Ord, Show)
 
@@ -26,8 +31,6 @@ data MuscleWithTrainingState = MuscleWithTrainingState
   { muscle :: Muscle,
     trainingState :: TrainingState
   }
-
-type MuscleMap = M.Map Muscle TrainingState
 
 type CharacterImage = [Text]
 
@@ -124,11 +127,11 @@ generateHumanMarkup muscles trainingStateToMarkup direction =
       -- 1. unpack line spans for a single muscle
       -- 2. fold spans with image, fixing markup due to muscle state
       transducer :: MuscleWithTrainingState -> [Markup a] -> [Markup a]
-      transducer (MuscleWithTrainingState muscle trainingState) image =
-        let (LineSpansWithFrontOrBack muscleDirection spans) = muscleToSpans muscle
+      transducer (MuscleWithTrainingState muscle' trainingState') image =
+        let (LineSpansWithFrontOrBack muscleDirection spans) = muscleToSpans muscle'
          in if muscleDirection /= direction
               then image
-              else foldr (spanTransducer (trainingStateToMarkup trainingState)) image spans
-      lines :: [Markup a]
-      lines = intersperse (fromText "\n") (foldr transducer markuppedImage muscles)
-   in markup (mconcat lines)
+              else foldr (spanTransducer (trainingStateToMarkup trainingState')) image spans
+      lines' :: [Markup a]
+      lines' = intersperse (fromText "\n") (foldr transducer markuppedImage muscles)
+   in markup (mconcat lines')

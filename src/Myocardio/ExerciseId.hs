@@ -1,4 +1,11 @@
-module Myocardio.ExerciseId where
+module Myocardio.ExerciseId
+  ( ExerciseId (..),
+    exerciseIdLength,
+    takeId,
+    listUnique,
+    calculateIds,
+  )
+where
 
 import Crypto.Hash.SHA1 (hash)
 import Data.Bifunctor (first)
@@ -35,8 +42,8 @@ import Data.Text.Encoding
 import Data.Tuple (fst)
 import Myocardio.Endo (Endo)
 import Myocardio.Exercise (Exercise (name))
-import Text.Show (Show (..))
-import Prelude ()
+import Prelude (Show)
+import Text.Show (Show(show))
 
 newtype ExerciseId = ExerciseId
   { getExId :: Text

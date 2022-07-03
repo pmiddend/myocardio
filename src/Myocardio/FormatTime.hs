@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Myocardio.FormatTime where
+module Myocardio.FormatTime(formatTimeDiff) where
 
 import Data.Eq ((==))
 import Data.Function (on)

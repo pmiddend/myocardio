@@ -1,4 +1,4 @@
-module Myocardio.Util where
+module Myocardio.Util(textShow) where
 
 import Data.Function ((.))
 import Data.Text
