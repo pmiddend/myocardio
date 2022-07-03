@@ -3,7 +3,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 
-module Myocardio.Data(Data(..), categoriesL, musclesL, exercisesL, emptyData) where
+module Myocardio.Data(Data(..), categoriesL, exercisesL, emptyData) where
 
 import Data.Aeson
   ( FromJSON,
@@ -17,12 +17,11 @@ import Text.Show (Show)
 
 data Data = Data
   { categories :: [Text],
-    muscles :: [Text],
     exercises :: [Exercise]
   }
   deriving (Generic, Show, ToJSON, FromJSON)
 
-makeLensesFor [("categories", "categoriesL"), ("muscles", "musclesL"), ("exercises", "exercisesL")] ''Data
+makeLensesFor [("categories", "categoriesL"), ("exercises", "exercisesL")] ''Data
 
 emptyData :: Data
-emptyData = Data [] [] []
+emptyData = Data [] []

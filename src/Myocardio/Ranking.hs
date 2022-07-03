@@ -1,15 +1,18 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE NoImplicitPrelude #-}
+{-# OPTIONS_GHC -Wno-deferred-out-of-scope-variables #-}
 
-module Myocardio.Ranking(rankExercises, reorderExercises) where
+module Myocardio.Ranking (rankExercises, reorderExercises, buildMusclesWithTrainingState) where
 
+import Myocardio.Util(utcTimeDayDiff)
 import Control.Arrow ((&&&))
 import Data.Bifunctor (second)
 import Data.Bool (otherwise)
 import Data.Composition ((.:))
 import Data.Eq ((==))
 import Data.Foldable
-  ( maximum,
+  ( Foldable (elem),
+    maximum,
     minimum,
   )
 import Data.Function
@@ -31,16 +34,15 @@ import Data.List
   )
 import qualified Data.List.NonEmpty as NE
 import Data.Maybe
-  ( Maybe,
+  ( Maybe (Nothing),
     mapMaybe,
     maybe,
   )
 import Data.Monoid ((<>))
 import Data.Ord
   ( Down (Down),
-    comparing,
+    comparing, Ord ((<)),
   )
-import Data.Text (Text)
 import Data.Time.Clock
   ( UTCTime,
     diffUTCTime,
@@ -50,7 +52,12 @@ import Data.Tuple
     snd,
     uncurry,
   )
-import Myocardio.Exercise (Exercise (last, muscles))
+import Lens.Micro ((^.))
+import Myocardio.Exercise (Exercise (last, muscles), lastL, musclesL)
+import Myocardio.Muscle (Muscle, allMuscles)
+import Myocardio.MuscleWithTrainingState (MuscleWithTrainingState (MuscleWithTrainingState))
+import Myocardio.TrainingState (TrainingState(Good, Medium, Bad))
+import qualified Myocardio.Util as Util
 import Prelude
   ( Double,
     fromIntegral,
@@ -113,7 +120,7 @@ withoutIdx = uncurry (<>) . second tail .: NE.splitAt
 
 exerciseComplement :: RankedExercise -> NE.NonEmpty RankedExercise -> Int
 exerciseComplement e rest =
-  let em :: [Text]
+  let em :: [Muscle]
       em = (muscles . reExercise) e
       groups :: NE.NonEmpty (NE.NonEmpty (Int, RankedExercise))
       groups =
@@ -146,3 +153,24 @@ reorderExercises exs =
           (Down . reRank)
           (zipWith RankedExercise exs (rankExercises exs))
    in reExercise <$> generateComplements ranked exerciseComplement
+
+trainingStateForMuscle :: UTCTime -> [Exercise] -> Muscle  -> TrainingState
+trainingStateForMuscle now exs m =
+  let lastDates :: [UTCTime]
+      lastDates = mapMaybe (\ex -> if m `elem` ex ^. musclesL then ex ^. lastL else Nothing) exs
+      evaluateLastDate :: UTCTime -> TrainingState
+      evaluateLastDate t =
+        let daysSince = now `utcTimeDayDiff` t
+         in if daysSince < 5
+              then Good
+              else
+                if daysSince < 10
+                  then Medium
+                  else Bad
+   in maybe Bad evaluateLastDate (Util.maximum lastDates)
+
+buildMusclesWithTrainingState :: UTCTime -> [Exercise] -> [MuscleWithTrainingState]
+buildMusclesWithTrainingState now exs =
+  let buildForMuscle :: Muscle -> MuscleWithTrainingState
+      buildForMuscle m = MuscleWithTrainingState m (trainingStateForMuscle now exs m)
+   in buildForMuscle <$> allMuscles

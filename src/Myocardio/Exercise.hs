@@ -31,10 +31,11 @@ import GHC.Generics (Generic)
 import Lens.Micro.Platform (makeLensesFor)
 import Myocardio.Endo (Endo)
 import Text.Show (Show)
+import Myocardio.Muscle (Muscle)
 
 data Exercise = Exercise
   { name :: Text,
-    muscles :: [Text],
+    muscles :: [Muscle],
     reps :: Text,
     category :: Text,
     last :: Maybe UTCTime,
