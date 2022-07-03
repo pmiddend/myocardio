@@ -31,7 +31,9 @@ import Brick.Widgets.Core
   ( txt,
     (<+>),
     (<=>),
+    withBorderStyle
   )
+import Brick.Widgets.Border.Style(unicode)
 import Brick.Widgets.Edit
   ( applyEdit,
     editContentsL,
