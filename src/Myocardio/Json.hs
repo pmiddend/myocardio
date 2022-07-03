@@ -1,16 +1,15 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 
-module Myocardio.Json where
+module Myocardio.Json(appName, configFileName, mkConfigDir, readConfigFile, writeConfigFile) where
 
 import Control.Applicative (pure)
 import Control.Exception (catchJust)
 import Control.Monad (guard, (>>=))
-import Data.Aeson (decodeFileStrict, eitherDecodeFileStrict)
+import Data.Aeson (eitherDecodeFileStrict)
 import Data.Aeson.Encode.Pretty (encodePretty)
 import Data.Bool (Bool (True))
 import Data.ByteString.Lazy (writeFile)
 import Data.Function ((.))
-import Data.Maybe (Maybe (Nothing, Just), fromJust, fromMaybe)
 import Myocardio.Data (Data, emptyData)
 import System.Directory (createDirectoryIfMissing)
 import System.Environment.XDG.BaseDir

@@ -11,8 +11,20 @@ module Myocardio.TextMarkup
 where
 
 import qualified Data.Semigroup as Sem
-import Data.String (IsString (..))
+import Data.String (IsString(fromString))
+import Prelude(Ord ((<), (>)), Num ((+)), Foldable (length, null))
 import qualified Data.Text as T
+import Data.Char (Char)
+import Text.Show (Show)
+import Data.Monoid (Monoid (mappend))
+import System.Directory.Internal.Prelude (Monoid(mempty))
+import Data.Eq (Eq ((==), (/=)))
+import Data.Bool (Bool, (||),otherwise)
+import Data.Int (Int)
+import Data.Function (($), (.))
+import Data.List ((++), splitAt, zip, repeat, concat, break, concatMap)
+import Data.Tuple (fst)
+import Data.Functor ((<$>))
 
 -- | Markup with metadata type 'a' assigned to each character.
 data Markup a = Markup [(Char, a)]
@@ -47,7 +59,7 @@ isEmpty (Markup ls) = null ls
 
 -- | Set the metadata for a range of character positions in a piece of
 -- markup. This is useful for, e.g., syntax highlighting.
-markupSet :: (Eq a) => (Int, Int) -> a -> Markup a -> Markup a
+markupSet :: (Int, Int) -> a -> Markup a -> Markup a
 markupSet (start, len) val m@(Markup l) =
   if start < 0 || start + len > length l
     then m

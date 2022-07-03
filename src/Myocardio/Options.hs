@@ -1,4 +1,4 @@
-module Myocardio.Options where
+module Myocardio.Options(Command(..), parser, parseOpts) where
 
 import Data.Monoid
   ( mempty,
@@ -19,6 +19,10 @@ import Options.Applicative
     (<**>),
   )
 import Text.Show (Show)
+import Prelude()
+import System.IO(IO)
+import Control.Applicative(pure)
+import Data.Functor((<$>))
 
 data Command = CommandList | CommandTag [Text] | CommandCommit deriving (Show)
 

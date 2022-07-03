@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 
-module Main where
+module Main (main) where
 
 import Brick.AttrMap
   ( AttrMap,
@@ -9,13 +9,13 @@ import Brick.AttrMap
     attrMap,
   )
 import Brick.Main
-  ( App (..),
+  ( App (App, appAttrMap, appChooseCursor, appDraw, appHandleEvent, appStartEvent),
     continue,
     defaultMain,
     halt,
   )
 import Brick.Types
-  ( BrickEvent (..),
+  ( BrickEvent (VtyEvent),
     CursorLocation,
     EventM,
     Next,
@@ -25,12 +25,10 @@ import Brick.Types
 import Brick.Util
   ( clamp,
     fg,
-    on,
   )
 import Brick.Widgets.Center (hCenter)
 import Brick.Widgets.Core
-  ( emptyWidget,
-    txt,
+  ( txt,
     (<+>),
     (<=>),
   )
@@ -47,9 +45,9 @@ import Control.Monad.IO.Class
   ( MonadIO,
     liftIO,
   )
-import Data.Bool (Bool (..))
+import Data.Bool (Bool (False, True))
 import Data.Eq ((==))
-import Data.Foldable (find, foldMap)
+import Data.Foldable (find)
 import Data.Function
   ( const,
     ($),
@@ -58,33 +56,19 @@ import Data.Function
 import Data.Functor ((<$>))
 import Data.Int (Int)
 import Data.List
-  ( filter,
-    length,
-    lookup,
+  ( length,
     sort,
-    zip,
-    zipWith,
   )
 import Data.Maybe
   ( Maybe (Just, Nothing),
-    fromJust,
     isJust,
-    listToMaybe,
   )
-import Data.Monoid
-  ( Monoid (..),
-    Sum (..),
-    getSum,
-    (<>),
-  )
-import Data.Ord (max)
-import Data.Semigroup (Semigroup (..))
+import Data.Monoid (Monoid (mempty))
+import Data.Semigroup (Semigroup ((<>)))
 import Data.Text
   ( Text,
-    justifyLeft,
     strip,
     unlines,
-    unwords,
   )
 import qualified Data.Text as Text
 import Data.Text.IO (appendFile)
@@ -94,26 +78,18 @@ import Data.Text.Zipper
     gotoEOL,
     textZipper,
   )
-import Data.Time.Clock
-  ( UTCTime,
-    getCurrentTime,
-  )
-import qualified Data.Vector as Vec
+import Data.Time.Clock (getCurrentTime)
 import Graphics.Vty
-  ( Event (..),
-    Key (..),
-    blue,
+  ( Event (EvKey),
+    Key (KChar, KEnter, KEsc),
     brightGreen,
     brightRed,
     brightYellow,
     cyan,
     defAttr,
-    white,
-    withStyle,
-    bold,
-    blink,
     standout,
-    underline
+    underline,
+    withStyle,
   )
 import Lens.Micro.Platform
   ( ix,
@@ -124,34 +100,33 @@ import Lens.Micro.Platform
     (^.),
     (^?!),
   )
-import Myocardio.AppListType
 import Myocardio.AppState
-import Myocardio.Data
-  ( Data (..),
-    exercisesL,
+  ( AppState(AppState),
+    stateData,
+    stateEditor,
+    stateEditorFocus,
+    stateNow,
+    stateTableCursor,
   )
-import Myocardio.Endo (Endo)
+import Myocardio.Data (exercisesL)
 import Myocardio.Exercise
-  ( Exercise (..),
+  ( Exercise (last, tagged, name, reps),
     commit,
     musclesL,
     repsL,
     toggleTag,
   )
-import Myocardio.ExerciseId
-  ( ExerciseId,
-    calculateIds,
-  )
+import Myocardio.ExerciseId (calculateIds)
 import Myocardio.FormatTime (formatTimeDiff)
-import Myocardio.Human (FrontOrBack (..), Muscle (..), MuscleWithTrainingState (..), TrainingState (..), generateHumanMarkup)
+import Myocardio.Human (FrontOrBack (Back, Front), Muscle (GluteusMaximus, Neck, Triceps), MuscleWithTrainingState (MuscleWithTrainingState), TrainingState (Bad, Good, Medium), generateHumanMarkup)
 import Myocardio.Json
   ( readConfigFile,
     writeConfigFile,
   )
-import Myocardio.Ranking (rankExercises, reorderExercises)
-import Myocardio.ResourceName
+import Myocardio.Ranking (reorderExercises)
+import Myocardio.ResourceName (ResourceName (NameEditor, NameList))
 import qualified Myocardio.TablePure as Table
-import System.IO (IO, print)
+import System.IO (IO)
 import Prelude (Show (show), subtract, (+))
 
 headings :: [Text]
@@ -169,8 +144,20 @@ exerciseRows s = makeRow <$> reorderExercises (s ^. stateData . exercisesL)
           taggedStr = if isJust (tagged ex) then "*" else " "
        in [name ex, reps ex, taggedStr, lastStr, Text.intercalate "," (sort $ ex ^. musclesL)]
 
+humanUI :: AppState -> [Widget ResourceName]
+humanUI _ =
+  let musclesWithTrainingState =
+        [ MuscleWithTrainingState GluteusMaximus Bad,
+          MuscleWithTrainingState Neck Good,
+          MuscleWithTrainingState Triceps Medium
+        ]
+      human = generateHumanMarkup musclesWithTrainingState trainingStateToAttr
+      humanFront = human Front
+      humanBack = human Back
+   in [humanFront <+> humanBack]
+
 drawUI :: AppState -> [Widget ResourceName]
-drawUI state = [humanUi]
+drawUI state = humanUI state
   where
     box =
       Table.render
@@ -186,15 +173,6 @@ drawUI state = [humanUi]
         else txt "[r]: edit reps [jk]: next/prev [t]: set done [c]: finished [q]: quit"
     ui =
       hCenter box <=> footer
-    musclesWithTrainingState =
-      [ MuscleWithTrainingState GluteusMaximus Bad,
-        MuscleWithTrainingState Neck Good,
-        MuscleWithTrainingState Triceps Medium
-      ]
-    human = generateHumanMarkup musclesWithTrainingState trainingStateToAttr
-    humanFront = human Front
-    humanBack = human Back
-    humanUi = humanFront <+> humanBack
 
 trainingStateToAttr :: TrainingState -> AttrName
 trainingStateToAttr Good = "muscleGood"
@@ -207,8 +185,8 @@ theMap =
     defAttr
     [ (Table.selectedAttr, fg cyan),
       (trainingStateToAttr Good, fg brightGreen `withStyle` underline),
-      (trainingStateToAttr Medium, fg brightYellow  `withStyle` standout),
-      (trainingStateToAttr Bad, fg brightRed  `withStyle` standout)
+      (trainingStateToAttr Medium, fg brightYellow `withStyle` standout),
+      (trainingStateToAttr Bad, fg brightRed `withStyle` standout)
     ]
 
 switchExercises :: MonadIO m => AppState -> [Exercise] -> m AppState

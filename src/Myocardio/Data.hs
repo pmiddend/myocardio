@@ -3,7 +3,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 
-module Myocardio.Data where
+module Myocardio.Data(Data(..), categoriesL, musclesL, exercisesL, emptyData) where
 
 import Data.Aeson
   ( FromJSON,

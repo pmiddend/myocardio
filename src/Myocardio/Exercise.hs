@@ -3,7 +3,19 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 
-module Myocardio.Exercise where
+module Myocardio.Exercise
+  ( Exercise (..),
+    isTagged,
+    toggleTag,
+    commit,
+    nameL,
+    musclesL,
+    repsL,
+    categoryL,
+    lastL,
+    taggedL,
+  )
+where
 
 import Data.Aeson
   ( FromJSON,

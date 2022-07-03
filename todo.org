@@ -1,0 +1,18 @@
+* DONE Fix cabal warningss
+CLOSED: [2022-07-03 So 11:57]
+:LOGBOOK:
+CLOCK: [2022-07-03 So 11:51]--[2022-07-03 So 11:57] =>  0:06
+:END:
+* TODO Display muscle groups that need more training [0/1]
+** TODO Headlines for front/back (and use medical terms)
+:LOGBOOK:
+CLOCK: [2022-07-03 So 11:57]
+:END:
+** TODO Show list of muscle groups next to that
+** TODO Use separate tab and display both
+* TODO Specify muscle groups in enum
+* TODO Specify muscle groups with percentage
+* TODO Concept for running/endurance/power
+* TODO Create new exercises in UI
+* TODO Formally describe and verify algorithm
+* TODO Properly separate lib/app
