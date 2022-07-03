@@ -1,0 +1,8 @@
+cradle:
+  stack:
+    - path: "./test-suite/"
+      component: "myocardio:myocardio-test"
+    - path: "./app/Main.hs"
+      component: "myocardio:exe:myocardio-exe"
+    - path: "./src"
+      component: "myocardio:lib"
