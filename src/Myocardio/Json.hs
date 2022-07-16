@@ -10,7 +10,7 @@ import Data.Aeson.Encode.Pretty (encodePretty)
 import Data.Bool (Bool (True))
 import Data.ByteString.Lazy (writeFile)
 import Data.Function ((.))
-import Myocardio.Data (Data, emptyData)
+import Myocardio.ExerciseData (ExerciseData, emptyExerciseData)
 import System.Directory (createDirectoryIfMissing)
 import System.Environment.XDG.BaseDir
   ( getUserConfigDir,
@@ -33,16 +33,16 @@ configFileName = getUserConfigFile appName "data.json"
 mkConfigDir :: IO ()
 mkConfigDir = getUserConfigDir appName >>= createDirectoryIfMissing True
 
-readConfigFile :: IO Data
+readConfigFile :: IO ExerciseData
 readConfigFile = do
   mkConfigDir
   fn <- configFileName
-  maybeResult <- catchJust (guard . isDoesNotExistError) (eitherDecodeFileStrict fn) (\_ -> pure (Right emptyData))
+  maybeResult <- catchJust (guard . isDoesNotExistError) (eitherDecodeFileStrict fn) (\_ -> pure (Right emptyExerciseData))
   case maybeResult of
     Left e -> error e
     Right v -> pure v
 
-writeConfigFile :: Data -> IO ()
+writeConfigFile :: ExerciseData -> IO ()
 writeConfigFile d = do
   mkConfigDir
   fn <- configFileName

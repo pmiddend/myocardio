@@ -41,9 +41,10 @@ import Data.Text.Encoding
   )
 import Data.Tuple (fst)
 import Myocardio.Endo (Endo)
-import Myocardio.Exercise (Exercise (name))
+import Myocardio.Exercise (Exercise, nameL)
 import Prelude (Show)
 import Text.Show (Show(show))
+import Lens.Micro.Platform (view)
 
 newtype ExerciseId = ExerciseId
   { getExId :: Text
@@ -65,7 +66,7 @@ listUnique a = ((==) `on` length) a (nub a)
 calculateIds :: [Exercise] -> [ExerciseId]
 calculateIds exs =
   let hashSingle :: Exercise -> ExerciseId
-      hashSingle = ExerciseId . decodeUtf8 . encode . hash . encodeUtf8 . name
+      hashSingle = ExerciseId . decodeUtf8 . encode . hash . encodeUtf8 . view nameL
       hashes :: [(ExerciseId, Exercise)]
       hashes = zip (hashSingle <$> exs) exs
       cutHashes :: Int -> Endo [(ExerciseId, Exercise)]

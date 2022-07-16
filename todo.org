@@ -1,13 +1,22 @@
-* DONE Fix cabal warningss
-CLOSED: [2022-07-03 So 11:57]
-:LOGBOOK:
-CLOCK: [2022-07-03 So 11:51]--[2022-07-03 So 11:57] =>  0:06
-:END:
-* DONE Fix hie to use lib/test/main
-CLOSED: [2022-07-03 So 12:36]
-:LOGBOOK:
-CLOCK: [2022-07-03 So 12:32]--[2022-07-03 So 12:36] =>  0:04
-:END:
+* TODO Fix error with stack/ghc/ghcide mismatch
+
+- Seems hls was built with ghc-9.2.2, but I'm using 9.0.2 for my project.
+  #+begin_example
+[stderr] Run entered for haskell-language-server-wrapper(haskell-language-server-wrapper) Version 1.7.0.0 x86_64 ghc-9.2.2
+  #+end_example
+- Later on:
+  #+begin_example
+[stderr] Consulting the cradle to get project GHC version...
+[stderr] Project GHC version: 9.0.2
+[stderr] Project GHC version: 9.0.2
+[stderr] haskell-language-server exe candidates: ["haskell-language-server-9.0.2","haskell-language-server"]
+  #+end_example
+- Then:
+  #+begin_example
+[stderr] 2022-07-16 08:13:36.889435817 [ThreadId 1160] INFO hie-bios:	    Could not load module ‘Prelude’
+[stderr] 2022-07-16 08:13:36.88945312 [ThreadId 1160] INFO hie-bios:	    It is a member of the hidden package ‘base-4.15.1.0’.
+  #+end_example
+- The library builds fine - the tests don't.
 * TODO Display muscle groups that need more training [2/3]
 ** DONE Headlines for front/back
 CLOSED: [2022-07-03 So 12:30]
@@ -20,16 +29,28 @@ CLOSED: [2022-07-03 So 14:10]
 CLOCK: [2022-07-03 So 12:37]--[2022-07-03 So 12:40] =>  0:03
 CLOCK: [2022-07-03 So 12:30]--[2022-07-03 So 12:32] =>  0:02
 :END:
-** TODO Use actual muscle values for image
 ** TODO Use separate tab and display both
-* DONE Specify muscle groups in enum
-CLOSED: [2022-07-03 So 13:05]
-:LOGBOOK:
-CLOCK: [2022-07-03 So 12:40]--[2022-07-03 So 13:05] =>  0:25
-:END:
+** TODO Use actual muscle values for image
+* TODO Fix "tag first exercise" bug
+* TODO Modify ranking to promote "singular" exercises
 * TODO Specify muscle groups with percentage
 * TODO Have a history of exercises
 * TODO Concept for running/endurance/power
 * TODO Create new exercises in UI
 * TODO Formally describe and verify algorithm
 * TODO Properly separate lib/app
+* DONE Fix cabal warnings
+CLOSED: [2022-07-03 So 11:57]
+:LOGBOOK:
+CLOCK: [2022-07-03 So 11:51]--[2022-07-03 So 11:57] =>  0:06
+:END:
+* DONE Fix hie to use lib/test/main
+CLOSED: [2022-07-03 So 12:36]
+:LOGBOOK:
+CLOCK: [2022-07-03 So 12:32]--[2022-07-03 So 12:36] =>  0:04
+:END:
+* DONE Specify muscle groups in enum
+CLOSED: [2022-07-03 So 13:05]
+:LOGBOOK:
+CLOCK: [2022-07-03 So 12:40]--[2022-07-03 So 13:05] =>  0:25
+:END:

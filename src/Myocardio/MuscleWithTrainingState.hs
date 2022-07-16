@@ -1,14 +1,14 @@
 {-# LANGUAGE TemplateHaskell #-}
-module Myocardio.MuscleWithTrainingState(MuscleWithTrainingState(MuscleWithTrainingState), muscleL, trainingStateL) where
+module Myocardio.MuscleWithTrainingState(MuscleWithTrainingState(MuscleWithTrainingState), muscle, trainingState) where
 
 import Prelude()
 import Myocardio.Muscle (Muscle)
 import Myocardio.TrainingState (TrainingState)
-import Lens.Micro.Platform (makeLensesFor)
+import Lens.Micro.Platform (makeLenses)
 
 data MuscleWithTrainingState = MuscleWithTrainingState
   { _muscle :: Muscle,
     _trainingState :: TrainingState
   }
 
-makeLensesFor [("_muscle", "muscleL"), ("_trainingState", "trainingStateL")] ''MuscleWithTrainingState
+makeLenses ''MuscleWithTrainingState
