@@ -1,6 +1,5 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE NoImplicitPrelude #-}
-{-# OPTIONS_GHC -Wno-deferred-out-of-scope-variables #-}
 
 module Myocardio.Ranking (rankExercises, reorderExercises, buildMusclesWithTrainingState) where
 
@@ -53,7 +52,7 @@ import Data.Tuple
     uncurry,
   )
 import Lens.Micro ((^.))
-import Myocardio.Exercise (Exercise (last, muscles), lastL, musclesL)
+import Myocardio.Exercise (Exercise, lastL, musclesL)
 import Myocardio.Muscle (Muscle, allMuscles)
 import Myocardio.MuscleWithTrainingState (MuscleWithTrainingState (MuscleWithTrainingState))
 import Myocardio.TrainingState (TrainingState(Good, Medium, Bad))
@@ -67,9 +66,10 @@ import Prelude
     (-),
     (/),
   )
+import Lens.Micro.Platform (view)
 
 exerciseGroups :: Exercise -> Int
-exerciseGroups = length . muscles
+exerciseGroups = length . view musclesL
 
 rankGroups :: Functor f => f Exercise -> f Double
 rankGroups = ((fromIntegral . exerciseGroups) <$>)
@@ -77,7 +77,7 @@ rankGroups = ((fromIntegral . exerciseGroups) <$>)
 rankTime :: [Exercise] -> [Double]
 rankTime exs =
   let minmax :: Maybe (UTCTime, UTCTime)
-      minmax = (minimum &&& maximum) <$> NE.nonEmpty (mapMaybe last exs)
+      minmax = (minimum &&& maximum) <$> NE.nonEmpty (mapMaybe (view lastL) exs)
       lerp :: UTCTime -> UTCTime -> UTCTime -> Double
       lerp min max v
         | min == max = 0
@@ -88,7 +88,7 @@ rankTime exs =
       rank min max = maybe 150 (lerp min max)
    in maybe
         (const 0 <$> exs)
-        (\(min, max) -> rank min max <$> (last <$> exs))
+        (\(min, max) -> rank min max <$> (view lastL <$> exs))
         minmax
 
 data RankedExercise = RankedExercise
@@ -121,13 +121,13 @@ withoutIdx = uncurry (<>) . second tail .: NE.splitAt
 exerciseComplement :: RankedExercise -> NE.NonEmpty RankedExercise -> Int
 exerciseComplement e rest =
   let em :: [Muscle]
-      em = (muscles . reExercise) e
+      em = (view musclesL . reExercise) e
       groups :: NE.NonEmpty (NE.NonEmpty (Int, RankedExercise))
       groups =
         NE.groupBy1
           ( \e1 e2 ->
-              length (em `intersect` (muscles . reExercise . snd) e1)
-                == length (em `intersect` (muscles . reExercise . snd) e2)
+              length (em `intersect` (view musclesL . reExercise . snd) e1)
+                == length (em `intersect` (view musclesL . reExercise . snd) e2)
           )
           (NE.zip (NE.fromList [0 ..]) rest)
       sortedGroups :: NE.NonEmpty (NE.NonEmpty (Int, RankedExercise))
@@ -135,7 +135,7 @@ exerciseComplement e rest =
         NE.sortBy
           ( comparing
               ( \xs ->
-                  length (em `intersect` muscles (reExercise (snd (NE.head xs))))
+                  length (em `intersect` view musclesL (reExercise (snd (NE.head xs))))
               )
           )
           groups

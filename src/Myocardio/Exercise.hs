@@ -28,7 +28,7 @@ import Data.Maybe (Maybe (Just, Nothing), isJust)
 import Data.Text (Text)
 import Data.Time.Clock (UTCTime)
 import GHC.Generics (Generic)
-import Lens.Micro.Platform (makeLensesFor)
+import Lens.Micro.Platform (makeLensesFor, view, (^.))
 import Myocardio.Endo (Endo)
 import Text.Show (Show)
 import Myocardio.Muscle (Muscle)
@@ -46,7 +46,7 @@ data Exercise = Exercise
 makeLensesFor [("name", "nameL"), ("muscles", "musclesL"), ("reps", "repsL"), ("category", "categoryL"), ("last", "lastL"), ("tagged", "taggedL")] ''Exercise
 
 isTagged :: Exercise -> Bool
-isTagged = isJust . tagged
+isTagged = isJust . view taggedL
 
 toggleTag :: UTCTime -> Endo Exercise
 toggleTag now ex
@@ -55,6 +55,6 @@ toggleTag now ex
 
 commit :: Endo Exercise
 commit ex =
-  case tagged ex of
+  case ex ^. taggedL of
     Nothing -> ex
     Just t -> ex {tagged = Nothing, last = Just t}

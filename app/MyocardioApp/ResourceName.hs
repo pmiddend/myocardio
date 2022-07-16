@@ -1,4 +1,4 @@
-module Myocardio.ResourceName where
+module MyocardioApp.ResourceName(ResourceName(..)) where
 
 import Data.Eq (Eq)
 import Data.Ord (Ord)

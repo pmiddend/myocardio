@@ -44,7 +44,6 @@ library:
   - cryptohash-sha1
   - base16-bytestring
   - directory
-  - optparse-applicative
   - bytestring
   - composition
   - containers

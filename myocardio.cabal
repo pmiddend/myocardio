@@ -24,9 +24,9 @@ source-repository head
 
 library
   exposed-modules:
-      Myocardio.Data
       Myocardio.Endo
       Myocardio.Exercise
+      Myocardio.ExerciseData
       Myocardio.ExerciseId
       Myocardio.FormatTime
       Myocardio.Human
@@ -34,7 +34,6 @@ library
       Myocardio.Markup
       Myocardio.Muscle
       Myocardio.MuscleWithTrainingState
-      Myocardio.Options
       Myocardio.Ranking
       Myocardio.TablePure
       Myocardio.TextMarkup
@@ -58,7 +57,6 @@ library
     , directory
     , microlens
     , microlens-platform
-    , optparse-applicative
     , text
     , time
     , vty
@@ -68,8 +66,13 @@ library
 executable myocardio-exe
   main-is: Main.hs
   other-modules:
-      Myocardio.AppState
-      Myocardio.ResourceName
+      MyocardioApp.GlobalData
+      MyocardioApp.Model
+      MyocardioApp.Page
+      MyocardioApp.Pages.MainPage
+      MyocardioApp.Pages.MusclesPage
+      MyocardioApp.ResourceName
+      MyocardioApp.UpdateResult
       Paths_myocardio
   hs-source-dirs:
       app
