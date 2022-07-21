@@ -11,12 +11,11 @@ module Myocardio.Muscle
         UpperBack,
         Calves,
         Neck,
-        Delta,
+        Deltoid,
         Triceps,
         HipFlexor,
         Pecs,
         Rotators,
-        BackQuadriceps,
         Hamstrings
       ),
     allMuscles,
@@ -51,12 +50,11 @@ data Muscle
   | UpperBack
   | Calves
   | Neck
-  | Delta
+  | Deltoid
   | Triceps
   | HipFlexor
   | Pecs
   | Rotators
-  | BackQuadriceps
   | Hamstrings
   deriving (Eq, Ord, Show, Enum, Bounded)
 
@@ -72,12 +70,11 @@ muscleFromText "lower back" = Just LowerBack
 muscleFromText "upper back" = Just UpperBack
 muscleFromText "calves" = Just Calves
 muscleFromText "neck" = Just Neck
-muscleFromText "delta" = Just Delta
+muscleFromText "deltoid" = Just Deltoid
 muscleFromText "triceps" = Just Triceps
 muscleFromText "hip flexor" = Just HipFlexor
 muscleFromText "pecs" = Just Pecs
 muscleFromText "rotators" = Just Rotators
-muscleFromText "back quadriceps" = Just BackQuadriceps
 muscleFromText "hamstrings" = Just Hamstrings
 muscleFromText _ = Nothing
 
@@ -91,12 +88,11 @@ muscleToText LowerBack = "lower back"
 muscleToText UpperBack = "upper back"
 muscleToText Calves = "calves"
 muscleToText Neck = "neck"
-muscleToText Delta = "delta"
+muscleToText Deltoid = "deltoid"
 muscleToText Triceps = "triceps"
 muscleToText HipFlexor = "hip flexor"
 muscleToText Pecs = "pecs"
 muscleToText Rotators = "rotators"
-muscleToText BackQuadriceps = "back quadriceps"
 muscleToText Hamstrings = "hamstrings"
 
 instance FromJSON Muscle where
