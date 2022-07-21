@@ -1,4 +1,5 @@
-* TODO Fix error with stack/ghc/ghcide mismatch
+* DONE Fix error with stack/ghc/ghcide mismatch
+CLOSED: [2022-07-21 Do 11:29]
 
 - Seems hls was built with ghc-9.2.2, but I'm using 9.0.2 for my project.
   #+begin_example
@@ -17,6 +18,11 @@
 [stderr] 2022-07-16 08:13:36.88945312 [ThreadId 1160] INFO hie-bios:	    It is a member of the hidden package ‘base-4.15.1.0’.
   #+end_example
 - The library builds fine - the tests don't.
+* TODO Show tab bar for the two pages (so far)
+* TODO Expand footer in Main Page
+:LOGBOOK:
+CLOCK: [2022-07-21 Do 11:30]
+:END:
 * TODO Display muscle groups that need more training [2/3]
 ** DONE Headlines for front/back
 CLOSED: [2022-07-03 So 12:30]

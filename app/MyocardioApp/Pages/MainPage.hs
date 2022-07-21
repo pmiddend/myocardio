@@ -2,21 +2,25 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 
-module MyocardioApp.Pages.MainPage (Model, view, update, cursorLocation, init) where
+module MyocardioApp.Pages.MainPage (Model, view, update, cursorLocation, init, attrs) where
 
+import Brick.AttrMap
+  ( AttrName,
+  )
 import Brick.Types
   ( BrickEvent (VtyEvent),
     EventM,
-    Widget,
+    Widget, Padding (Max),
   )
 import Brick.Util
   ( clamp,
+    bg
   )
 import Brick.Widgets.Center (hCenter)
 import Brick.Widgets.Core
   ( txt,
     (<+>),
-    (<=>),
+    (<=>), withAttr, padRight,
   )
 import Brick.Widgets.Edit
   ( Editor,
@@ -64,6 +68,10 @@ import Data.Time.Clock (UTCTime, getCurrentTime)
 import Graphics.Vty
   ( Event (EvKey),
     Key (KChar, KEnter, KEsc),
+    Attr,
+    withStyle,
+    bold,
+    brightGreen,
   )
 import Lens.Micro.Platform
   ( ix,
@@ -134,6 +142,13 @@ exerciseRows model = makeRow <$> reorderExercises (model ^. exerciseData . exerc
           taggedStr = if isJust (ex ^. taggedL) then "*" else " "
        in [ex ^. nameL, ex ^. repsL, taggedStr, lastStr, Text.intercalate "," (muscleToText <$> sort (ex ^. musclesL))]
 
+statusLineAttr :: AttrName
+statusLineAttr = "status line"
+
+attrs :: [(AttrName, Attr)]
+attrs =
+  [ (statusLineAttr, bg brightGreen `withStyle` bold) ]
+
 view :: Model -> [Widget ResourceName]
 view model = [hCenter box <=> footer]
   where
@@ -148,7 +163,7 @@ view model = [hCenter box <=> footer]
     footer =
       if model ^. editorFocus
         then txt "Reps: " <+> renderEditor (txt . unlines) (model ^. editorFocus) (model ^. editor)
-        else txt "[r]: edit reps [jk]: next/prev [t]: set done [c]: finished [q]: quit"
+        else withAttr statusLineAttr $ padRight Max $ txt "[r]: edit reps [jk]: next/prev [t]: set done [c]: finished [q]: quit"
 
 switchExercises :: MonadIO m => Model -> [Exercise] -> m Model
 switchExercises model newExs =

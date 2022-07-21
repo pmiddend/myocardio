@@ -2,32 +2,20 @@
 
 module MyocardioApp.Pages.MusclesPage (init, view, trainingStateToAttr, cursorLocation, update, Model, attrs) where
 
+import Prelude()
 import Brick.AttrMap
-  ( AttrMap,
-    AttrName,
-    attrMap,
-  )
-import Brick.Main
-  ( App (App, appAttrMap, appChooseCursor, appDraw, appHandleEvent, appStartEvent),
-    continue,
-    defaultMain,
-    halt,
+  ( AttrName,
   )
 import Brick.Types
-  ( BrickEvent (VtyEvent),
-    CursorLocation,
+  ( BrickEvent,
     EventM,
-    Next,
     Padding (Pad),
     Widget,
-    cursorLocationName,
   )
 import Brick.Util
-  ( clamp,
-    fg,
+  ( fg,
   )
 import Brick.Widgets.Border (vBorder)
-import Brick.Widgets.Center (hCenter)
 import Brick.Widgets.Core
   ( emptyWidget,
     padRight,
@@ -36,111 +24,45 @@ import Brick.Widgets.Core
     (<+>),
     (<=>),
   )
-import Brick.Widgets.Edit
-  ( Editor,
-    applyEdit,
-    editContentsL,
-    editorText,
-    handleEditorEvent,
-    renderEditor,
-  )
 import Control.Applicative (pure)
-import Control.Monad (void)
-import Control.Monad.IO.Class
-  ( MonadIO,
-    liftIO,
-  )
-import Data.Bool (Bool (False, True))
-import Data.Eq ((==))
-import Data.Foldable (find, foldr)
+import Data.Foldable (foldr)
 import Data.Function
   ( const,
     id,
-    ($),
     (.),
   )
 import Data.Functor ((<$>))
-import Data.Int (Int)
 import Data.List
-  ( length,
-    sort,
-    sortOn,
+  ( sortOn,
   )
 import Data.Maybe
-  ( Maybe (Just, Nothing),
-    isJust,
+  ( Maybe (Nothing),
   )
-import Data.Monoid (Monoid (mempty))
-import Data.Semigroup (Semigroup ((<>)))
-import Data.Text
-  ( Text,
-    strip,
-    unlines,
-  )
-import qualified Data.Text as Text
-import Data.Text.IO (appendFile)
-import Data.Text.Zipper
-  ( clearZipper,
-    getText,
-    gotoEOL,
-    textZipper,
-  )
-import Data.Time.Clock (UTCTime, getCurrentTime)
 import Graphics.Vty
   ( Attr,
-    Event (EvKey),
-    Key (KChar, KEnter, KEsc),
     brightGreen,
     brightRed,
     brightYellow,
-    cyan,
-    defAttr,
     standout,
     underline,
     withStyle,
   )
 import Lens.Micro.Platform
-  ( ix,
-    makeLenses,
-    to,
-    (%~),
-    (&),
-    (.~),
-    (^.),
-    (^?!),
+  ( (^.),
   )
 import qualified Lens.Micro.Platform as Lens
-import Myocardio.Exercise
-  ( Exercise,
-    commit,
-    last,
-    muscles,
-    name,
-    reps,
-    tagged,
-    toggleTag,
-  )
-import Myocardio.ExerciseData (ExerciseData, exercisesL)
-import Myocardio.ExerciseId (calculateIds)
-import Myocardio.FormatTime (formatTimeDiff)
+import Myocardio.ExerciseData (exercisesL)
 import Myocardio.Human
   ( FrontOrBack (Back, Front),
     generateHumanMarkup,
   )
-import Myocardio.Json
-  ( readConfigFile,
-    writeConfigFile,
-  )
 import Myocardio.Muscle (muscleToText)
 import Myocardio.MuscleWithTrainingState (MuscleWithTrainingState (MuscleWithTrainingState), trainingState)
-import Myocardio.Ranking (buildMusclesWithTrainingState, reorderExercises)
-import qualified Myocardio.TablePure as Table
+import Myocardio.Ranking (buildMusclesWithTrainingState)
 import Myocardio.TrainingState (TrainingState (Bad, Good, Medium))
 import MyocardioApp.GlobalData (GlobalData, globalExerciseData, globalNow)
-import MyocardioApp.ResourceName (ResourceName (NameEditor, NameList))
+import MyocardioApp.ResourceName (ResourceName)
 import MyocardioApp.UpdateResult (UpdateResult (UpdateResultContinue))
-import System.IO (IO)
-import Prelude (Show (show), subtract, (+))
 
 trainingStateToAttr :: TrainingState -> AttrName
 trainingStateToAttr Good = "muscleGood"
