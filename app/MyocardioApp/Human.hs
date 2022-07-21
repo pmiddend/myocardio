@@ -20,10 +20,9 @@ import Lens.Micro (ix, (%~), (&))
 import MyocardioApp.Markup (GetAttr, Markup, fromText, markup, markupSet)
 import Myocardio.Muscle
   ( Muscle
-      ( BackQuadriceps,
-        Calves,
+      ( Calves,
         Core,
-        Delta,
+        Deltoid,
         GluteusMaximus,
         GluteusMedius,
         Hamstrings,
@@ -61,7 +60,7 @@ humanMatrixFront =
     " |.|   |.__:__..|  |.|   ",
     " |.|   |.__:__..|  |.|   ",
     " |.|   |........|  |.|   ",
-    "  \"    |...__...|  \"     ",
+    "  \"    |...__...|   \"     ",
     "       |..|  |..|        ",
     "       |..|  |..|        ",
     "       |x.|  |.x|        ",
@@ -87,7 +86,7 @@ humanMatrixBack =
     " |.|   |........|  |.|   ",
     " |.|   |........|  |.|   ",
     " |.|   |........|  |.|   ",
-    "  \"    |..._|_..|  \"     ",
+    "  \"    |..._|_..|   \"     ",
     "       |..|  |..|        ",
     "       |..|  |..|        ",
     "       |..|  |..|        ",
@@ -115,22 +114,21 @@ data LineSpansWithFrontOrBack = LineSpansWithFrontOrBack
   }
 
 muscleToSpans :: Muscle -> LineSpansWithFrontOrBack
-muscleToSpans GluteusMaximus = LineSpansWithFrontOrBack Back [LineSpan 14 8 11, LineSpan 14 13 15, LineSpan 15 8 11, LineSpan 15 13 15]
-muscleToSpans GluteusMedius = LineSpansWithFrontOrBack Back []
-muscleToSpans Quadriceps = LineSpansWithFrontOrBack Front []
-muscleToSpans Core = LineSpansWithFrontOrBack Front []
-muscleToSpans SideCore = LineSpansWithFrontOrBack Front []
-muscleToSpans LowerBack = LineSpansWithFrontOrBack Back []
-muscleToSpans UpperBack = LineSpansWithFrontOrBack Back []
-muscleToSpans Calves = LineSpansWithFrontOrBack Back []
+muscleToSpans GluteusMaximus = LineSpansWithFrontOrBack Back [LineSpan 14 10 11, LineSpan 15 10 11, LineSpan 14 13 14, LineSpan 15 13 14]
+muscleToSpans GluteusMedius = LineSpansWithFrontOrBack Back [LineSpan 14 8 9, LineSpan 15 8 9, LineSpan 14 15 15, LineSpan 15 15 15]
+muscleToSpans Quadriceps = LineSpansWithFrontOrBack Front [LineSpan 16 8 9, LineSpan 17 8 9, LineSpan 16 14 15, LineSpan 17 14 15]
+muscleToSpans Core = LineSpansWithFrontOrBack Front [LineSpan 11 9 13, LineSpan 12 9 13, LineSpan 13 9 13]
+muscleToSpans SideCore = LineSpansWithFrontOrBack Front [LineSpan 11 8 8, LineSpan 12 8 8, LineSpan 13 8 8, LineSpan 11 14 14, LineSpan 12 14 14, LineSpan 13 14 14]
+muscleToSpans LowerBack = LineSpansWithFrontOrBack Back [LineSpan 13 9 14]
+muscleToSpans UpperBack = LineSpansWithFrontOrBack Back [LineSpan 9 7 16, LineSpan 10 8 16]
+muscleToSpans Calves = LineSpansWithFrontOrBack Back [LineSpan 19 8 9, LineSpan 19 14 15, LineSpan 20 8 9, LineSpan 20 14 15, LineSpan 21 8 9, LineSpan 21 14 15]
 muscleToSpans Neck = LineSpansWithFrontOrBack Front [LineSpan 6 11 12]
-muscleToSpans Delta = LineSpansWithFrontOrBack Front []
+muscleToSpans Deltoid = LineSpansWithFrontOrBack Front [LineSpan 7 5 6, LineSpan 8 5 6, LineSpan 7 16 17, LineSpan 8 16 17]
 muscleToSpans Triceps = LineSpansWithFrontOrBack Back [LineSpan 8 4 4, LineSpan 9 3 3, LineSpan 10 2 2, LineSpan 8 18 18, LineSpan 9 19 19, LineSpan 10 20 20]
-muscleToSpans HipFlexor = LineSpansWithFrontOrBack Front []
-muscleToSpans Pecs = LineSpansWithFrontOrBack Front []
-muscleToSpans Rotators = LineSpansWithFrontOrBack Front []
-muscleToSpans BackQuadriceps = LineSpansWithFrontOrBack Back []
-muscleToSpans Hamstrings = LineSpansWithFrontOrBack Back []
+muscleToSpans HipFlexor = LineSpansWithFrontOrBack Front [LineSpan 15 8 9, LineSpan 15 14 15]
+muscleToSpans Pecs = LineSpansWithFrontOrBack Front [LineSpan 7 7 16, LineSpan 8 7 16, LineSpan 9 7 16, LineSpan 10 8 16]
+muscleToSpans Rotators = LineSpansWithFrontOrBack Back [LineSpan 7 7 9, LineSpan 8 7 9, LineSpan 7 14 15, LineSpan 8 14 15]
+muscleToSpans Hamstrings = LineSpansWithFrontOrBack Back [LineSpan 16 8 9, LineSpan 17 8 9, LineSpan 16 14 15, LineSpan 17 14 15]
 
 applyToIdx :: Int -> (a -> a) -> [a] -> [a]
 applyToIdx idx f xs = xs & ix idx %~ f

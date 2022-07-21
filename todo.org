@@ -18,9 +18,10 @@ CLOSED: [2022-07-21 Do 11:29]
 [stderr] 2022-07-16 08:13:36.88945312 [ThreadId 1160] INFO hie-bios:	    It is a member of the hidden package ‘base-4.15.1.0’.
   #+end_example
 - The library builds fine - the tests don't.
-* TODO Figure out how to pass modified exercises to different views
+* DONE Figure out how to pass modified exercises to different views
+CLOSED: [2022-07-21 Do 12:36]
 :LOGBOOK:
-CLOCK: [2022-07-21 Do 12:30]
+CLOCK: [2022-07-21 Do 12:30]--[2022-07-21 Do 12:36] =>  0:06
 :END:
 * DONE Remove brick-specifics from =Myocardio=
 CLOSED: [2022-07-21 Do 12:30]
@@ -34,7 +35,8 @@ CLOSED: [2022-07-21 Do 11:42]
 :LOGBOOK:
 CLOCK: [2022-07-21 Do 11:30]--[2022-07-21 Do 11:42] =>  0:12
 :END:
-* TODO Display muscle groups that need more training [2/3]
+* DONE Display muscle groups that need more training [4/4]
+CLOSED: [2022-07-21 Do 13:28]
 ** DONE Headlines for front/back
 CLOSED: [2022-07-03 So 12:30]
 :LOGBOOK:
@@ -46,8 +48,10 @@ CLOSED: [2022-07-03 So 14:10]
 CLOCK: [2022-07-03 So 12:37]--[2022-07-03 So 12:40] =>  0:03
 CLOCK: [2022-07-03 So 12:30]--[2022-07-03 So 12:32] =>  0:02
 :END:
-** TODO Use separate tab and display both
-** TODO Use actual muscle values for image
+** DONE Use separate tab and display both
+CLOSED: [2022-07-21 Do 12:36]
+** DONE Use actual muscle values for image
+CLOSED: [2022-07-21 Do 13:28]
 * TODO Fix "tag first exercise" bug
 * TODO Modify ranking to promote "singular" exercises
 * TODO Specify muscle groups with percentage
@@ -55,7 +59,8 @@ CLOCK: [2022-07-03 So 12:30]--[2022-07-03 So 12:32] =>  0:02
 * TODO Concept for running/endurance/power
 * TODO Create new exercises in UI
 * TODO Formally describe and verify algorithm
-* TODO Properly separate lib/app
+* DONE Properly separate lib/app
+CLOSED: [2022-07-21 Do 12:37]
 * DONE Fix cabal warnings
 CLOSED: [2022-07-03 So 11:57]
 :LOGBOOK:

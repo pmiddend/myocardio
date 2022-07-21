@@ -23,7 +23,7 @@ The input is expected in JSON format at the location =$HOME/.config/myocardio/da
         "calves",
         "gluteus maximus",
         "neck",
-        "delta",
+        "deltoid",
         "triceps",
         "hip flexor",
         "pectoralis",
@@ -37,7 +37,7 @@ The input is expected in JSON format at the location =$HOME/.config/myocardio/da
             "muscles": [
                 "pectoralis",
                 "triceps",
-                "delta",
+                "deltoid",
                 "core",
                 "quadriceps",
                 "hip flexor"
