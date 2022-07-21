@@ -66,6 +66,7 @@ library
 executable myocardio-exe
   main-is: Main.hs
   other-modules:
+      MyocardioApp.BrickUtil
       MyocardioApp.GlobalData
       MyocardioApp.Model
       MyocardioApp.Page

@@ -63,6 +63,7 @@ import Myocardio.TrainingState (TrainingState (Bad, Good, Medium))
 import MyocardioApp.GlobalData (GlobalData, globalExerciseData, globalNow)
 import MyocardioApp.ResourceName (ResourceName)
 import MyocardioApp.UpdateResult (UpdateResult (UpdateResultContinue))
+import MyocardioApp.BrickUtil (stackVertical)
 
 trainingStateToAttr :: TrainingState -> AttrName
 trainingStateToAttr Good = "muscleGood"
@@ -71,13 +72,10 @@ trainingStateToAttr Bad = "muscleBad"
 
 type Model = GlobalData
 
-stack :: [Widget n] -> Widget n
-stack = foldr (<=>) emptyWidget
-
 init :: GlobalData -> Model
 init = id
 
-view :: Model -> [Widget ResourceName]
+view :: Model -> Widget ResourceName
 view s =
   let musclesWithTrainingState = buildMusclesWithTrainingState (s ^. globalNow) (s ^. globalExerciseData . exercisesL)
       human = generateHumanMarkup musclesWithTrainingState trainingStateToAttr
@@ -87,8 +85,8 @@ view s =
       muscleMarkedUp :: MuscleWithTrainingState -> Widget ResourceName
       muscleMarkedUp (MuscleWithTrainingState m ts) = withAttr (trainingStateToAttr ts) (txt (muscleToText m))
       muscleWidgets = muscleMarkedUp <$> sortOn (Lens.view trainingState) musclesWithTrainingState
-      muscleList = txt "Muscles:" <=> txt "" <=> stack muscleWidgets
-   in [humanFront <+> divider <+> humanBack <+> padRight (Pad 1) divider <+> muscleList]
+      muscleList = txt "Muscles:" <=> txt "" <=> stackVertical muscleWidgets
+   in humanFront <+> divider <+> humanBack <+> padRight (Pad 1) divider <+> muscleList
 
 cursorLocation :: Model -> Maybe ResourceName
 cursorLocation = const Nothing

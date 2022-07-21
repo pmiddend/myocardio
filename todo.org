@@ -18,10 +18,17 @@ CLOSED: [2022-07-21 Do 11:29]
 [stderr] 2022-07-16 08:13:36.88945312 [ThreadId 1160] INFO hie-bios:	    It is a member of the hidden package ‘base-4.15.1.0’.
   #+end_example
 - The library builds fine - the tests don't.
-* TODO Show tab bar for the two pages (so far)
-* TODO Expand footer in Main Page
+* TODO Figure out how to pass modified exercises to different views
+* TODO Remove brick-specifics from =Myocardio=
+* DONE Show tab bar for the two pages (so far)
+CLOSED: [2022-07-21 Do 12:12]
 :LOGBOOK:
-CLOCK: [2022-07-21 Do 11:30]
+CLOCK: [2022-07-21 Do 11:42]--[2022-07-21 Do 12:12] =>  0:30
+:END:
+* DONE Expand footer in Main Page
+CLOSED: [2022-07-21 Do 11:42]
+:LOGBOOK:
+CLOCK: [2022-07-21 Do 11:30]--[2022-07-21 Do 11:42] =>  0:12
 :END:
 * TODO Display muscle groups that need more training [2/3]
 ** DONE Headlines for front/back
