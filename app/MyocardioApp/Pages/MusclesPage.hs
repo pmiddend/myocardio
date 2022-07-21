@@ -2,12 +2,11 @@
 
 module MyocardioApp.Pages.MusclesPage (init, view, trainingStateToAttr, cursorLocation, update, Model, attrs) where
 
-import Prelude()
 import Brick.AttrMap
   ( AttrName,
   )
 import Brick.Types
-  ( BrickEvent,
+  ( BrickEvent (VtyEvent),
     EventM,
     Padding (Pad),
     Widget,
@@ -17,15 +16,13 @@ import Brick.Util
   )
 import Brick.Widgets.Border (vBorder)
 import Brick.Widgets.Core
-  ( emptyWidget,
-    padRight,
+  ( padRight,
     txt,
     withAttr,
     (<+>),
     (<=>),
   )
 import Control.Applicative (pure)
-import Data.Foldable (foldr)
 import Data.Function
   ( const,
     id,
@@ -40,6 +37,8 @@ import Data.Maybe
   )
 import Graphics.Vty
   ( Attr,
+    Event (EvKey),
+    Key (KChar),
     brightGreen,
     brightRed,
     brightYellow,
@@ -52,18 +51,19 @@ import Lens.Micro.Platform
   )
 import qualified Lens.Micro.Platform as Lens
 import Myocardio.ExerciseData (exercisesL)
-import Myocardio.Human
-  ( FrontOrBack (Back, Front),
-    generateHumanMarkup,
-  )
 import Myocardio.Muscle (muscleToText)
 import Myocardio.MuscleWithTrainingState (MuscleWithTrainingState (MuscleWithTrainingState), trainingState)
 import Myocardio.Ranking (buildMusclesWithTrainingState)
 import Myocardio.TrainingState (TrainingState (Bad, Good, Medium))
-import MyocardioApp.GlobalData (GlobalData, globalExerciseData, globalNow)
-import MyocardioApp.ResourceName (ResourceName)
-import MyocardioApp.UpdateResult (UpdateResult (UpdateResultContinue))
 import MyocardioApp.BrickUtil (stackVertical)
+import MyocardioApp.GlobalData (GlobalData, globalExerciseData, globalNow)
+import MyocardioApp.Human
+  ( FrontOrBack (Back, Front),
+    generateHumanMarkup,
+  )
+import MyocardioApp.ResourceName (ResourceName)
+import MyocardioApp.UpdateResult (UpdateResult (UpdateResultContinue, UpdateResultHalt))
+import Prelude ()
 
 trainingStateToAttr :: TrainingState -> AttrName
 trainingStateToAttr Good = "muscleGood"
@@ -92,6 +92,7 @@ cursorLocation :: Model -> Maybe ResourceName
 cursorLocation = const Nothing
 
 update :: Model -> BrickEvent ResourceName e -> EventM ResourceName (UpdateResult Model)
+update model (VtyEvent (EvKey (KChar 'q') [])) = pure (UpdateResultHalt model)
 update model _ = pure (UpdateResultContinue model)
 
 attrs :: [(AttrName, Attr)]

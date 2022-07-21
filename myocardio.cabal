@@ -29,14 +29,10 @@ library
       Myocardio.ExerciseData
       Myocardio.ExerciseId
       Myocardio.FormatTime
-      Myocardio.Human
       Myocardio.Json
-      Myocardio.Markup
       Myocardio.Muscle
       Myocardio.MuscleWithTrainingState
       Myocardio.Ranking
-      Myocardio.TablePure
-      Myocardio.TextMarkup
       Myocardio.TrainingState
       Myocardio.Util
   other-modules:
@@ -49,17 +45,14 @@ library
     , aeson-pretty
     , base >=4.7 && <5
     , base16-bytestring
-    , brick
     , bytestring
     , composition
-    , containers
     , cryptohash-sha1
     , directory
     , microlens
     , microlens-platform
     , text
     , time
-    , vty
     , xdg-basedir
   default-language: Haskell2010
 
@@ -68,11 +61,15 @@ executable myocardio-exe
   other-modules:
       MyocardioApp.BrickUtil
       MyocardioApp.GlobalData
+      MyocardioApp.Human
+      MyocardioApp.Markup
       MyocardioApp.Model
       MyocardioApp.Page
       MyocardioApp.Pages.MainPage
       MyocardioApp.Pages.MusclesPage
       MyocardioApp.ResourceName
+      MyocardioApp.TablePure
+      MyocardioApp.TextMarkup
       MyocardioApp.UpdateResult
       Paths_myocardio
   hs-source-dirs:
@@ -81,6 +78,9 @@ executable myocardio-exe
   build-depends:
       base >=4.7 && <5
     , brick
+    , containers
+    , directory
+    , microlens
     , microlens-platform
     , myocardio
     , text

@@ -1,4 +1,4 @@
-module Myocardio.TextMarkup
+module MyocardioApp.TextMarkup
   ( Markup,
     markupToList,
     markupSet,

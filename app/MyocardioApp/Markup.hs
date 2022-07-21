@@ -1,4 +1,4 @@
-module Myocardio.Markup
+module MyocardioApp.Markup
   ( Markup
   , markup
   , markupSet
@@ -11,7 +11,7 @@ where
 import Lens.Micro ((.~), (&), (^.))
 import Control.Monad (forM, mapM)
 import qualified Data.Text as T
-import Myocardio.TextMarkup
+import MyocardioApp.TextMarkup
     ( Markup, (@@), fromText, markupSet, markupToList )
 
 import Graphics.Vty (Attr, vertCat, horizCat, text', defAttr)
