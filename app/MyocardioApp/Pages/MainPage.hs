@@ -149,8 +149,8 @@ attrs :: [(AttrName, Attr)]
 attrs =
   [ (statusLineAttr, bg brightGreen `withStyle` bold) ]
 
-view :: Model -> [Widget ResourceName]
-view model = [hCenter box <=> footer]
+view :: Model -> Widget ResourceName
+view model = hCenter box <=> footer
   where
     box =
       Table.render
