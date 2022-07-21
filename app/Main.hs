@@ -61,6 +61,7 @@ import MyocardioApp.Model
   ( Model (Model), modelPage, modelGlobalData
   )
 import System.IO (IO)
+import Data.Semigroup ((<>))
 
 -- log :: MonadIO m => Text -> m ()
 -- log logText = do
@@ -77,7 +78,7 @@ theMap :: AttrMap
 theMap =
   attrMap
     defAttr
-    ((Table.selectedAttr, fg cyan) : MusclesPage.attrs)
+    ((Table.selectedAttr, fg cyan) : (MusclesPage.attrs <> MainPage.attrs))
 
 update ::
   Model ->
