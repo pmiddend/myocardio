@@ -108,8 +108,12 @@ update ::
 update model e =
   case e of
     VtyEvent (EvKey KEsc []) -> halt model
-    VtyEvent (EvKey (KFun 1) []) -> continue (model & modelPage .~ PageMain (MainPage.init (model ^. modelGlobalData)))
-    VtyEvent (EvKey (KFun 2) []) -> continue (model & modelPage .~ PageMuscles (MusclesPage.init (model ^. modelGlobalData)))
+    VtyEvent (EvKey (KFun 1) []) ->
+      continue (model & modelPage .~ PageMain (MainPage.init (model ^. modelGlobalData)))
+    VtyEvent (EvKey (KFun 2) []) ->
+      case model ^. modelPage of
+        PageMuscles _ -> continue model
+        PageMain mainModel -> continue (model & modelPage .~ PageMuscles (MusclesPage.init (MainPage.deinit mainModel)))
     _ ->
       case model ^. modelPage of
         PageMain mainModel -> do

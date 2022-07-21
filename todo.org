@@ -19,7 +19,11 @@ CLOSED: [2022-07-21 Do 11:29]
   #+end_example
 - The library builds fine - the tests don't.
 * TODO Figure out how to pass modified exercises to different views
-* TODO Remove brick-specifics from =Myocardio=
+:LOGBOOK:
+CLOCK: [2022-07-21 Do 12:30]
+:END:
+* DONE Remove brick-specifics from =Myocardio=
+CLOSED: [2022-07-21 Do 12:30]
 * DONE Show tab bar for the two pages (so far)
 CLOSED: [2022-07-21 Do 12:12]
 :LOGBOOK:
