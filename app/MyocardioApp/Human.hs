@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
-module Myocardio.Human
+module MyocardioApp.Human
   ( generateHumanMarkup,
     MuscleWithTrainingState (..),
     Muscle (..),
@@ -17,7 +17,7 @@ import Data.List (intersperse)
 import Data.Monoid (Monoid (mconcat))
 import Data.Text (Text)
 import Lens.Micro (ix, (%~), (&))
-import Myocardio.Markup (GetAttr, Markup, fromText, markup, markupSet)
+import MyocardioApp.Markup (GetAttr, Markup, fromText, markup, markupSet)
 import Myocardio.Muscle
   ( Muscle
       ( BackQuadriceps,

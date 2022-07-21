@@ -32,8 +32,6 @@ library:
   source-dirs: src
   dependencies:
   - base >= 4.7 && < 5
-  - brick
-  - vty
   - microlens-platform
   - microlens
   - time
@@ -46,7 +44,6 @@ library:
   - directory
   - bytestring
   - composition
-  - containers
 
 executables:
   myocardio-exe:
@@ -56,11 +53,14 @@ executables:
     - base >= 4.7 && < 5
     - myocardio
     - brick
+    - microlens
     - microlens-platform
     - text
     - time
     - text-zipper
     - vty
+    - containers
+    - directory
 
 tests:
   myocardio-test:

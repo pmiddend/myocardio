@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Myocardio.TablePure
+module MyocardioApp.TablePure
   ( render,
     selectedAttr,
     RowBorderStyle (..),

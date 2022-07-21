@@ -1,12 +1,12 @@
-{-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE NoImplicitPrelude #-}
 
 module Main (main) where
 
-import MyocardioApp.UpdateResult(UpdateResult(UpdateResultHalt, UpdateResultContinue))
 import Brick.AttrMap
   ( AttrMap,
-    attrMap, AttrName,
+    AttrName,
+    attrMap,
   )
 import Brick.Main
   ( App (App, appAttrMap, appChooseCursor, appDraw, appHandleEvent, appStartEvent),
@@ -19,12 +19,15 @@ import Brick.Types
     CursorLocation,
     EventM,
     Next,
+    Padding (Max),
     Widget,
-    cursorLocationName, Padding (Max),
+    cursorLocationName,
   )
 import Brick.Util
-  ( fg, bg,
+  ( bg,
+    fg,
   )
+import Brick.Widgets.Core (padRight, txt, withAttr, (<=>))
 import Control.Applicative (pure)
 import Control.Monad (void)
 import Data.Eq ((==))
@@ -32,17 +35,22 @@ import Data.Foldable (find)
 import Data.Function
   ( const,
     ($),
-    (.), id,
+    (.),
   )
+import Data.Functor ((<$>))
 import Data.Maybe
   ( Maybe,
   )
+import Data.Semigroup ((<>))
 import Data.Time.Clock (getCurrentTime)
 import Graphics.Vty
   ( Event (EvKey),
-    Key (KChar, KEsc, KFun),
+    Key (KEsc, KFun),
+    bold,
+    brightCyan,
     cyan,
-    defAttr, brightCyan, bold, withStyle,
+    defAttr,
+    withStyle,
   )
 import Lens.Micro.Platform
   ( (&),
@@ -52,20 +60,20 @@ import Lens.Micro.Platform
 import Myocardio.Json
   ( readConfigFile,
   )
+import MyocardioApp.BrickUtil (stackHorizontal)
+import MyocardioApp.GlobalData (GlobalData (GlobalData))
+import MyocardioApp.Model
+  ( Model (Model),
+    modelGlobalData,
+    modelPage,
+  )
 import MyocardioApp.Page (Page (PageMain, PageMuscles), isPageMain, isPageMuscles)
 import qualified MyocardioApp.Pages.MainPage as MainPage
 import qualified MyocardioApp.Pages.MusclesPage as MusclesPage
 import MyocardioApp.ResourceName (ResourceName)
-import qualified Myocardio.TablePure as Table
-import MyocardioApp.GlobalData(GlobalData(GlobalData))
-import MyocardioApp.Model
-  ( Model (Model), modelPage, modelGlobalData
-  )
+import qualified MyocardioApp.TablePure as Table
+import MyocardioApp.UpdateResult (UpdateResult (UpdateResultContinue, UpdateResultHalt))
 import System.IO (IO)
-import Data.Semigroup ((<>))
-import Brick.Widgets.Core (txt, (<=>), padRight, (<+>), withAttr)
-import MyocardioApp.BrickUtil (stackHorizontal)
-import Data.Functor ((<$>))
 
 -- log :: MonadIO m => Text -> m ()
 -- log logText = do
@@ -83,9 +91,9 @@ view model =
   let tabs = [("[F1]: Exercise List", isPageMain), ("[F2]: Muscles", isPageMuscles)]
       tabToWidget (tab, tabEnabled) = withAttr (if tabEnabled (model ^. modelPage) then tabBarActiveAttr else tabBarInactiveAttr) (padRight Max (txt tab))
       tabBar = stackHorizontal (tabToWidget <$> tabs)
-  in case model ^. modelPage of
-    PageMain subModel -> [tabBar <=> MainPage.view subModel]
-    PageMuscles subModel -> [tabBar <=> MusclesPage.view subModel]
+   in case model ^. modelPage of
+        PageMain subModel -> [tabBar <=> MainPage.view subModel]
+        PageMuscles subModel -> [tabBar <=> MusclesPage.view subModel]
 
 theMap :: AttrMap
 theMap =
@@ -121,10 +129,9 @@ appCursor ::
   Maybe (CursorLocation ResourceName)
 appCursor model cl =
   let filterList x = find ((== x) . cursorLocationName) cl
-   in
-    case model ^. modelPage of
-      PageMain mainModel -> filterList (MainPage.cursorLocation mainModel)
-      PageMuscles musclesModel -> filterList (MusclesPage.cursorLocation musclesModel)
+   in case model ^. modelPage of
+        PageMain mainModel -> filterList (MainPage.cursorLocation mainModel)
+        PageMuscles musclesModel -> filterList (MusclesPage.cursorLocation musclesModel)
 
 main :: IO ()
 main = do
