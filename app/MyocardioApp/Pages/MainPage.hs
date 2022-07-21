@@ -2,7 +2,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 
-module MyocardioApp.Pages.MainPage (Model, view, update, cursorLocation, init, attrs) where
+module MyocardioApp.Pages.MainPage (Model, view, update, cursorLocation, init, attrs, deinit) where
 
 import Brick.AttrMap
   ( AttrName,
@@ -101,7 +101,7 @@ import Myocardio.Json
 import Myocardio.Muscle (muscleToText)
 import Myocardio.Ranking (reorderExercises)
 import qualified MyocardioApp.TablePure as Table
-import MyocardioApp.GlobalData (GlobalData, globalExerciseData, globalNow)
+import MyocardioApp.GlobalData (GlobalData(GlobalData), globalExerciseData, globalNow)
 import MyocardioApp.ResourceName (ResourceName (NameEditor, NameList))
 import MyocardioApp.UpdateResult (UpdateResult (UpdateResultContinue, UpdateResultHalt))
 import Prelude (subtract, (+))
@@ -115,6 +115,9 @@ data Model = Model
   }
 
 makeLenses ''Model
+
+deinit :: Model -> GlobalData
+deinit model = GlobalData (model ^. exerciseData) (model ^. now)
 
 init :: GlobalData -> Model
 init globalData =
