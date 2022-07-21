@@ -3,11 +3,19 @@
 
 module Main (main) where
 
+import Myocardio.ExerciseData(ExerciseData)
+import qualified Data.Text.Encoding as TE
+import Data.Text.IO(hPutStrLn)
+import Data.Text(unpack, pack, Text)
+import Data.Bifunctor(first)
+import Data.Either(Either(Left, Right))
 import Brick.AttrMap
   ( AttrMap,
     AttrName,
     attrMap,
   )
+import qualified Data.ByteString.Lazy as BSL
+import qualified Data.ByteString.Char8 as BS8
 import Brick.Main
   ( App (App, appAttrMap, appChooseCursor, appDraw, appHandleEvent, appStartEvent),
     continue,
@@ -31,7 +39,7 @@ import Brick.Widgets.Core (padRight, txt, withAttr, (<=>))
 import Control.Applicative (pure)
 import Control.Monad (void)
 import Data.Eq ((==))
-import Data.Foldable (find)
+import Data.Foldable (find, foldMap)
 import Data.Function
   ( const,
     ($),
@@ -39,7 +47,7 @@ import Data.Function
   )
 import Data.Functor ((<$>))
 import Data.Maybe
-  ( Maybe,
+  ( Maybe(Just, Nothing),
   )
 import Data.Semigroup ((<>))
 import Data.Time.Clock (getCurrentTime)
@@ -56,11 +64,19 @@ import Lens.Micro.Platform
   ( (&),
     (.~),
     (^.),
-  )
-import Myocardio.Json
-  ( readConfigFile,
+    to
   )
 import MyocardioApp.BrickUtil (stackHorizontal)
+import MyocardioApp.ConfigJson
+  ( readDataFile,
+    ConfigWebdav,
+    mkConfigDir,
+    webdavL,
+    urlL,
+    dataFileName,
+    readConfigFile,
+    userL
+  )
 import MyocardioApp.GlobalData (GlobalData (GlobalData))
 import MyocardioApp.Model
   ( Model (Model),
@@ -73,7 +89,11 @@ import qualified MyocardioApp.Pages.MusclesPage as MusclesPage
 import MyocardioApp.ResourceName (ResourceName)
 import qualified MyocardioApp.TablePure as Table
 import MyocardioApp.UpdateResult (UpdateResult (UpdateResultContinue, UpdateResultHalt))
-import System.IO (IO)
+import Network.HTTP.Client (newManager, applyBasicAuth, parseRequest, httpLbs, responseBody)
+import Network.HTTP.Client.TLS (tlsManagerSettings)
+import Data.Aeson(eitherDecode)
+import qualified System.Console.Haskeline as Haskeline
+import System.IO (IO, stderr)
 
 -- log :: MonadIO m => Text -> m ()
 -- log logText = do
@@ -137,18 +157,44 @@ appCursor model cl =
         PageMain mainModel -> filterList (MainPage.cursorLocation mainModel)
         PageMuscles musclesModel -> filterList (MusclesPage.cursorLocation musclesModel)
 
+syncFromWebdav :: ConfigWebdav -> IO (Maybe ())
+syncFromWebdav configWebdav = do
+  password' <- Haskeline.runInputT Haskeline.defaultSettings (Haskeline.getPassword (Just '*') ("Password for " <> (configWebdav ^. userL . to unpack) <> ": "))
+  case password' of
+    Nothing -> pure Nothing
+    Just password -> do
+      httpManager <- newManager tlsManagerSettings
+      request <- applyBasicAuth (TE.encodeUtf8 (configWebdav ^. userL)) (BS8.pack password) <$> parseRequest (configWebdav ^. urlL . to unpack)
+      response <- httpLbs request httpManager
+      case first pack (eitherDecode (responseBody response)) :: Either Text ExerciseData of
+        Left e -> do
+          hPutStrLn stderr ("error decoding JSON from webdav: " <> e)
+          pure Nothing
+        Right _ -> do
+          mkConfigDir
+          dataFile <- dataFileName
+          BSL.writeFile dataFile (responseBody response)
+          pure (Just ())
+      
+      
+
 main :: IO ()
 main = do
-  configFile <- readConfigFile
-  now <- getCurrentTime
-  let app =
-        App
-          { appDraw = view,
-            appChooseCursor = appCursor,
-            appHandleEvent = update,
-            appStartEvent = pure,
-            appAttrMap = const theMap
-          }
-      globalData = GlobalData configFile now
-      initialState = Model globalData (PageMain (MainPage.init globalData))
-  void $ defaultMain app initialState
+  config <- readConfigFile
+  result <- foldMap syncFromWebdav (config ^. webdavL)
+  case result of
+    Nothing -> pure ()
+    Just _ -> do
+      data_ <- readDataFile
+      now <- getCurrentTime
+      let app =
+            App
+              { appDraw = view,
+                appChooseCursor = appCursor,
+                appHandleEvent = update,
+                appStartEvent = pure,
+                appAttrMap = const theMap
+              }
+          globalData = GlobalData data_ now
+          initialState = Model globalData (PageMain (MainPage.init globalData))
+      void $ defaultMain app initialState

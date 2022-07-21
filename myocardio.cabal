@@ -29,7 +29,6 @@ library
       Myocardio.ExerciseData
       Myocardio.ExerciseId
       Myocardio.FormatTime
-      Myocardio.Json
       Myocardio.Muscle
       Myocardio.MuscleWithTrainingState
       Myocardio.Ranking
@@ -42,24 +41,21 @@ library
   ghc-options: -Weverything -Wno-missing-safe-haskell-mode -Wno-unsafe -Wno-missing-deriving-strategies -Wno-all-missed-specialisations -Wno-monomorphism-restriction -Wno-safe -Wno-missing-local-signatures -Wno-prepositive-qualified-module -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       aeson
-    , aeson-pretty
     , base >=4.7 && <5
     , base16-bytestring
-    , bytestring
     , composition
     , cryptohash-sha1
-    , directory
     , microlens
     , microlens-platform
     , text
     , time
-    , xdg-basedir
   default-language: Haskell2010
 
 executable myocardio-exe
   main-is: Main.hs
   other-modules:
       MyocardioApp.BrickUtil
+      MyocardioApp.ConfigJson
       MyocardioApp.GlobalData
       MyocardioApp.Human
       MyocardioApp.Markup
@@ -76,10 +72,16 @@ executable myocardio-exe
       app
   ghc-options: -Weverything -Wno-missing-safe-haskell-mode -Wno-unsafe -Wno-missing-deriving-strategies -Wno-all-missed-specialisations -Wno-monomorphism-restriction -Wno-safe -Wno-missing-local-signatures -Wno-prepositive-qualified-module -threaded -rtsopts -with-rtsopts=-N
   build-depends:
-      base >=4.7 && <5
+      aeson
+    , aeson-pretty
+    , base >=4.7 && <5
     , brick
+    , bytestring
     , containers
     , directory
+    , haskeline
+    , http-client
+    , http-client-tls
     , microlens
     , microlens-platform
     , myocardio
@@ -87,6 +89,7 @@ executable myocardio-exe
     , text-zipper
     , time
     , vty
+    , xdg-basedir
   default-language: Haskell2010
 
 test-suite myocardio-test

@@ -95,7 +95,7 @@ import Myocardio.Exercise
   )
 import Myocardio.ExerciseData (ExerciseData, exercisesL)
 import Myocardio.FormatTime (formatTimeDiff)
-import Myocardio.Json
+import MyocardioApp.ConfigJson
   ( writeConfigFile,
   )
 import Myocardio.Muscle (muscleToText)

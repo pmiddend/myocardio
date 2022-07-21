@@ -37,12 +37,8 @@ library:
   - time
   - text
   - aeson
-  - aeson-pretty
-  - xdg-basedir
   - cryptohash-sha1
   - base16-bytestring
-  - directory
-  - bytestring
   - composition
 
 executables:
@@ -53,10 +49,17 @@ executables:
     - base >= 4.7 && < 5
     - myocardio
     - brick
+    - bytestring
     - microlens
+    - haskeline
     - microlens-platform
+    - aeson-pretty
+    - xdg-basedir
     - text
     - time
+    - aeson
+    - http-client-tls
+    - http-client
     - text-zipper
     - vty
     - containers
