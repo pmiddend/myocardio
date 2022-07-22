@@ -3,19 +3,12 @@
 
 module Main (main) where
 
-import Myocardio.ExerciseData(ExerciseData)
-import qualified Data.Text.Encoding as TE
-import Data.Text.IO(hPutStrLn)
-import Data.Text(unpack, pack, Text)
-import Data.Bifunctor(first)
-import Data.Either(Either(Left, Right))
+import Data.Bool(Bool(True,False), not)
 import Brick.AttrMap
   ( AttrMap,
     AttrName,
     attrMap,
   )
-import qualified Data.ByteString.Lazy as BSL
-import qualified Data.ByteString.Char8 as BS8
 import Brick.Main
   ( App (App, appAttrMap, appChooseCursor, appDraw, appHandleEvent, appStartEvent),
     continue,
@@ -38,8 +31,13 @@ import Brick.Util
 import Brick.Widgets.Core (padRight, txt, withAttr, (<=>))
 import Control.Applicative (pure)
 import Control.Monad (void)
+import Data.Aeson (eitherDecode)
+import Data.Bifunctor (first)
+import qualified Data.ByteString.Char8 as BS8
+import qualified Data.ByteString.Lazy as BSL
+import Data.Either (Either (Left, Right))
 import Data.Eq ((==))
-import Data.Foldable (find, foldMap)
+import Data.Foldable (find)
 import Data.Function
   ( const,
     ($),
@@ -47,9 +45,12 @@ import Data.Function
   )
 import Data.Functor ((<$>))
 import Data.Maybe
-  ( Maybe(Just, Nothing),
+  ( Maybe (Just, Nothing),
   )
 import Data.Semigroup ((<>))
+import Data.Text (Text, pack, unpack)
+import qualified Data.Text.Encoding as TE
+import Data.Text.IO (hPutStrLn)
 import Data.Time.Clock (getCurrentTime)
 import Graphics.Vty
   ( Event (EvKey),
@@ -61,21 +62,22 @@ import Graphics.Vty
     withStyle,
   )
 import Lens.Micro.Platform
-  ( (&),
+  ( to,
+    (&),
     (.~),
     (^.),
-    to
   )
+import Myocardio.ExerciseData (ExerciseData)
 import MyocardioApp.BrickUtil (stackHorizontal)
 import MyocardioApp.ConfigJson
-  ( readDataFile,
-    ConfigWebdav,
-    mkConfigDir,
-    webdavL,
-    urlL,
+  ( ConfigWebdav,
     dataFileName,
+    mkConfigDir,
     readConfigFile,
-    userL
+    readDataFile,
+    urlL,
+    userL,
+    webdavL,
   )
 import MyocardioApp.GlobalData (GlobalData (GlobalData))
 import MyocardioApp.Model
@@ -89,9 +91,8 @@ import qualified MyocardioApp.Pages.MusclesPage as MusclesPage
 import MyocardioApp.ResourceName (ResourceName)
 import qualified MyocardioApp.TablePure as Table
 import MyocardioApp.UpdateResult (UpdateResult (UpdateResultContinue, UpdateResultHalt))
-import Network.HTTP.Client (newManager, applyBasicAuth, parseRequest, httpLbs, responseBody)
+import Network.HTTP.Client (applyBasicAuth, httpLbs, newManager, parseRequest, responseBody)
 import Network.HTTP.Client.TLS (tlsManagerSettings)
-import Data.Aeson(eitherDecode)
 import qualified System.Console.Haskeline as Haskeline
 import System.IO (IO, stderr)
 
@@ -157,11 +158,11 @@ appCursor model cl =
         PageMain mainModel -> filterList (MainPage.cursorLocation mainModel)
         PageMuscles musclesModel -> filterList (MusclesPage.cursorLocation musclesModel)
 
-syncFromWebdav :: ConfigWebdav -> IO (Maybe ())
+syncFromWebdav :: ConfigWebdav -> IO Bool
 syncFromWebdav configWebdav = do
   password' <- Haskeline.runInputT Haskeline.defaultSettings (Haskeline.getPassword (Just '*') ("Password for " <> (configWebdav ^. userL . to unpack) <> ": "))
   case password' of
-    Nothing -> pure Nothing
+    Nothing -> pure False
     Just password -> do
       httpManager <- newManager tlsManagerSettings
       request <- applyBasicAuth (TE.encodeUtf8 (configWebdav ^. userL)) (BS8.pack password) <$> parseRequest (configWebdav ^. urlL . to unpack)
@@ -169,32 +170,35 @@ syncFromWebdav configWebdav = do
       case first pack (eitherDecode (responseBody response)) :: Either Text ExerciseData of
         Left e -> do
           hPutStrLn stderr ("error decoding JSON from webdav: " <> e)
-          pure Nothing
+          pure False
         Right _ -> do
           mkConfigDir
           dataFile <- dataFileName
           BSL.writeFile dataFile (responseBody response)
-          pure (Just ())
-      
-      
+          pure True
+
+main' = do
+  data_ <- readDataFile
+  now <- getCurrentTime
+  let app =
+        App
+          { appDraw = view,
+            appChooseCursor = appCursor,
+            appHandleEvent = update,
+            appStartEvent = pure,
+            appAttrMap = const theMap
+          }
+      globalData = GlobalData data_ now
+      initialState = Model globalData (PageMain (MainPage.init globalData))
+  void $ defaultMain app initialState
 
 main :: IO ()
 main = do
   config <- readConfigFile
-  result <- foldMap syncFromWebdav (config ^. webdavL)
-  case result of
-    Nothing -> pure ()
-    Just _ -> do
-      data_ <- readDataFile
-      now <- getCurrentTime
-      let app =
-            App
-              { appDraw = view,
-                appChooseCursor = appCursor,
-                appHandleEvent = update,
-                appStartEvent = pure,
-                appAttrMap = const theMap
-              }
-          globalData = GlobalData data_ now
-          initialState = Model globalData (PageMain (MainPage.init globalData))
-      void $ defaultMain app initialState
+  case config ^. webdavL of
+    Just webdavConfig -> do
+      webdavResult <- syncFromWebdav webdavConfig
+      if not webdavResult
+        then pure ()
+        else main'
+    Nothing -> main'
