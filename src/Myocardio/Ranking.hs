@@ -1,14 +1,14 @@
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 
-module Myocardio.Ranking (rankExercises, reorderExercises, buildMusclesWithTrainingState) where
+module Myocardio.Ranking (rankExercises, reorderExercises, buildMusclesWithTrainingState, generateComplements, RankedExercise(RankedExercise), rankTime, exerciseComplement) where
 
-import Myocardio.Util(utcTimeDayDiff)
 import Control.Arrow ((&&&))
 import Data.Bifunctor (second)
 import Data.Bool (otherwise)
 import Data.Composition ((.:))
-import Data.Eq ((==))
+import Data.Eq (Eq ((/=)), (==))
 import Data.Foldable
   ( Foldable (elem),
     maximum,
@@ -25,13 +25,15 @@ import Data.Functor
   )
 import Data.Int (Int)
 import Data.List
-  ( intersect,
+  ( filter,
+    intersect,
     length,
     sortOn,
     tail,
     zipWith,
   )
 import qualified Data.List.NonEmpty as NE
+import qualified Data.Map as Map
 import Data.Maybe
   ( Maybe (Nothing),
     mapMaybe,
@@ -40,7 +42,8 @@ import Data.Maybe
 import Data.Monoid ((<>))
 import Data.Ord
   ( Down (Down),
-    comparing, Ord ((<)),
+    Ord ((<)),
+    comparing,
   )
 import Data.Time.Clock
   ( UTCTime,
@@ -52,10 +55,12 @@ import Data.Tuple
     uncurry,
   )
 import Lens.Micro ((^.))
-import Myocardio.Exercise (Exercise, lastL, musclesL)
+import Lens.Micro.Platform (makeLensesFor, view)
+import Myocardio.Exercise (Exercise, lastL, musclesL, nameL)
 import Myocardio.Muscle (Muscle, allMuscles)
 import Myocardio.MuscleWithTrainingState (MuscleWithTrainingState (MuscleWithTrainingState))
-import Myocardio.TrainingState (TrainingState(Good, Medium, Bad))
+import Myocardio.TrainingState (TrainingState (Bad, Good, Medium))
+import Myocardio.Util (utcTimeDayDiff)
 import qualified Myocardio.Util as Util
 import Prelude
   ( Double,
@@ -64,9 +69,8 @@ import Prelude
     (*),
     (+),
     (-),
-    (/),
+    (/), Traversable (traverse),
   )
-import Lens.Micro.Platform (view)
 
 exerciseGroups :: Exercise -> Int
 exerciseGroups = length . view musclesL
@@ -77,7 +81,7 @@ rankGroups = ((fromIntegral . exerciseGroups) <$>)
 rankTime :: [Exercise] -> [Double]
 rankTime exs =
   let minmax :: Maybe (UTCTime, UTCTime)
-      minmax = (minimum &&& maximum) <$> NE.nonEmpty (mapMaybe (view lastL) exs)
+      minmax = (minimum &&& maximum) <$> traverse (view lastL) exs
       lerp :: UTCTime -> UTCTime -> UTCTime -> Double
       lerp min max v
         | min == max = 0
@@ -95,6 +99,8 @@ data RankedExercise = RankedExercise
   { reExercise :: Exercise,
     reRank :: Double
   }
+
+makeLensesFor [("reExercise", "exerciseL"), ("reRank", "rankL")] ''RankedExercise
 
 rankExercises :: [Exercise] -> [Double]
 rankExercises exs = zipWith (+) (rankTime exs) (rankGroups exs)
@@ -154,7 +160,28 @@ reorderExercises exs =
           (zipWith RankedExercise exs (rankExercises exs))
    in reExercise <$> generateComplements ranked exerciseComplement
 
-trainingStateForMuscle :: UTCTime -> [Exercise] -> Muscle  -> TrainingState
+groupByToMap :: Ord k => (a -> k) -> [a] -> Map.Map k (NE.NonEmpty a)
+groupByToMap f = Map.fromList . ((\groupElements -> (f (NE.head groupElements), groupElements)) <$>) . NE.groupWith f
+
+reorderWithChosenElement chosen [] = []
+reorderWithChosenElement chosen xs =
+  let intersectComparator e = length ((e ^. exerciseL . musclesL) `intersect` (chosen ^. exerciseL . musclesL))
+      groupedByIntersection = groupByToMap intersectComparator xs
+      nextExercise = NE.head (NE.sortWith (Down . view rankL) (snd (Map.findMin groupedByIntersection)))
+      xsWithoutNext = filter ((/= (nextExercise ^. exerciseL . nameL)) . view (exerciseL . nameL)) xs
+   in nextExercise : reorderWithChosenElement nextExercise xsWithoutNext
+
+reorderRanked :: [RankedExercise] -> [RankedExercise]
+reorderRanked [] = []
+reorderRanked [x] = [x]
+reorderRanked (x : xs) = x : reorderWithChosenElement x xs
+
+zipWithPrevious g f xs = zipWith f xs (g xs)
+
+reorderPreRanked :: [Exercise] -> [Exercise]
+reorderPreRanked = (view exerciseL <$>) . reorderRanked . sortOn (Down . view rankL) . zipWithPrevious rankExercises RankedExercise
+
+trainingStateForMuscle :: UTCTime -> [Exercise] -> Muscle -> TrainingState
 trainingStateForMuscle now exs m =
   let lastDates :: [UTCTime]
       lastDates = mapMaybe (\ex -> if m `elem` ex ^. musclesL then ex ^. lastL else Nothing) exs
