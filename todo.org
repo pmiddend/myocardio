@@ -1,6 +1,7 @@
 * TODO Fix "tag first exercise" bug
 
 - How do we reproduce this even?
+* TODO Fix scolling behavior
 * TODO Modify ranking to promote "singular" exercises
 * TODO Synchronize other way into webdav
 * TODO Remove "categories" notion (for now)
