@@ -38,6 +38,7 @@ library:
   - text
   - aeson
   - cryptohash-sha1
+  - containers
   - base16-bytestring
   - composition
 
@@ -72,3 +73,7 @@ tests:
     dependencies:
     - myocardio
     - hspec
+    - base >= 4.7 && < 5
+    - QuickCheck
+    - quickcheck-instances
+    - time
