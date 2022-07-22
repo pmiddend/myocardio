@@ -1,3 +1,16 @@
+* TODO Fix "tag first exercise" bug
+
+- How do we reproduce this even?
+* TODO Modify ranking to promote "singular" exercises
+* TODO Synchronize other way into webdav
+* TODO Remove "categories" notion (for now)
+* TODO Specify muscle groups with percentage
+* TODO Redo "Human" without head this time
+* TODO Concept for running/endurance/power
+* TODO Create new exercises in UI
+* TODO Have a history of exercises
+* DONE Formally describe algorithm
+CLOSED: [2022-07-22 Fr 11:50]
 * DONE Fix error with stack/ghc/ghcide mismatch
 CLOSED: [2022-07-21 Do 11:29]
 
@@ -52,12 +65,10 @@ CLOCK: [2022-07-03 So 12:30]--[2022-07-03 So 12:32] =>  0:02
 CLOSED: [2022-07-21 Do 12:36]
 ** DONE Use actual muscle values for image
 CLOSED: [2022-07-21 Do 13:28]
-* TODO Fix "tag first exercise" bug
-
-- How do we reproduce this even?
-* TODO Synchronize config file via webdav, for example?
+* DONE Synchronize config file via webdav, for example?
+CLOSED: [2022-07-21 Do 17:09]
 :LOGBOOK:
-CLOCK: [2022-07-21 Do 16:04]
+CLOCK: [2022-07-21 Do 16:04]--[2022-07-21 Do 17:09] =>  1:05
 CLOCK: [2022-07-21 Do 13:38]--[2022-07-21 Do 14:21] =>  0:43
 CLOCK: [2022-07-21 Do 13:32]--[2022-07-21 Do 13:38] =>  0:06
 :END:
@@ -65,13 +76,6 @@ CLOCK: [2022-07-21 Do 13:32]--[2022-07-21 Do 13:38] =>  0:06
 - Should be no problem:
   + create a new tls manager like so: https://www.stackage.org/package/http-client-tls
   + Execute a MKCOL/PUT like so: https://stackoverflow.com/questions/1205101/command-line-utility-for-webdav-upload
-* TODO Remove categories notion (for now)
-* TODO Modify ranking to promote "singular" exercises
-* TODO Specify muscle groups with percentage
-* TODO Have a history of exercises
-* TODO Concept for running/endurance/power
-* TODO Create new exercises in UI
-* TODO Formally describe and verify algorithm
 * DONE Properly separate lib/app
 CLOSED: [2022-07-21 Do 12:37]
 * DONE Fix cabal warnings
