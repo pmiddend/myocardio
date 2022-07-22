@@ -13,7 +13,7 @@ To model this mathematically, assume we have a (finite) set $\textbf{Muscle}$ of
 \textbf{Muscle} = \{ \text{biceps}, \text{triceps} \}
 \end{equation}
 
-We’d like to model a point in time as a value from $\mathbb{N}$, the natural numbers. But we have to deal with the special value “never”. So, we define $T = \mathbb{N} \cup \{\Omega\}$, where $\Omega$ stands for this special value. This makes $T$ a set that is not a ring anymore, it’s not even ordered.
+We’d like to model a point in time as a value from $\mathbb{N}$, the natural numbers. But we have to deal with the special value “never”. So, we define $T = \mathbb{N} \cup \{\bot\}$, where $\bot$ stands for this special value. This makes $T$ a set that is not a ring anymore, it’s not even ordered.
 
 Modeling all possible exercises as simply
 
@@ -32,7 +32,7 @@ m: \textbf{Exercise} \to \mathcal{P}(\textbf{Muscle})
 descibing the muscles of an exercise and
 
 \(
-l: \textbf{Exercise} \to T
+\ell: \textbf{Exercise} \to T
 \)
 
 describing the latest execution time point.
@@ -45,22 +45,22 @@ We define two /rankings/ for an exercise. One ranks by /time/ $\rho_t$ and one b
 
 Ranking by complexity is easy: $\rho_c(e) = |m(e)|$, it’s just the number of muscles involved. More muscles equals a better ranking.
 
-Ranking by time is a bit more complicated. We want to interpolate all exercises’ times by the latest/oldest one. However, we cannot interpolate across $T$ because we have no ordering (because of the special element $\Omega$).
+Ranking by time is a bit more complicated. We want to interpolate all exercises’ times by the latest/oldest one. However, we cannot interpolate across $T$ because we have no ordering (because of the special element $\bot$).
 
 To fix this, we model $\rho_t$ as follows:
 
-1. $\rho_t(e)=0$ for all $e \in \textbf{Exercise}$ if $\Omega \in l(\textbf{Exercise})$. Meaning the ranking is moot if one of the exercises has never been performed.
+1. $\rho_t(e)=0$ for all $e \in \textbf{Exercise}$ if $\bot \in \ell(\textbf{Exercise})$. Meaning the ranking is moot if one of the exercises has never been performed.
 2. Otherwise determine the minimum and maximum time stamps: $l_{\text{min}}, l_{\text{max}}$ (which is now well-defined). Linearly interpolate between the two and rescale to [0,100].
 
 This gives exercises that were just executed a low ranking (i.e. close to 0) and exercises that weren’t performed recently higher ones (more towards 100).
 
 The total ranking for an exercise is simply \( \rho(e) = \rho_t(e) + \rho_c(e) \)
 
-** Groups
+** Greedy Algorithm
 
 We could now just rank all our exercises by $\rho$. However, two exercises that feature the same or similar muscle groups could be included back-to-back in this plan, and that’s a non-goal.
 
-In order to rank the exercises, we employ a greedy algorithm in order to construct an order $o_i$ for exercises (where $i \in \mathbb{N}$). We assume $|\textbf{Exercise}| \geq 1$.
+In order to rank the exercises, we employ a greedy algorithm in order to construct an order $o_i$ for exercises (where $i \in \mathbb{N}$). We assume $|\textbf{Exercise}| \geq 2$.
 
 1. Let $i=0$. Take the exercise $e_i=\text{argmax}_{e \in \textbf{Exercise}} \{ \rho(e) \}$ with the highest ranking. Define $o_i=e_i$ Define the rest $R_i=\textbf{Exercise} \setminus \{o_i\}$
 2. If $|R_i| = \{ e_{i+1} \}$, choose $o_{i+1}=e_{i+1}$ and terminate.
