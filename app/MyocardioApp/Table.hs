@@ -14,7 +14,7 @@ module MyocardioApp.Table
   )
 where
 
-import Brick (AttrName, Padding (Max, Pad), Result (image), Size (Fixed), ViewportType (Both), Widget (Widget), hBox, hLimit, joinBorders, padLeft, padTop, vBox, vLimit, visible, withAttr)
+import Brick (AttrName, Padding (Max, Pad), Result (image), Size (Fixed, Greedy), ViewportType (Both), Widget (Widget, vSize), hBox, hLimit, joinBorders, padLeft, padTop, vBox, vLimit, visible, withAttr, getContext, imageL, attrL, (<=>))
 import qualified Brick
 import Brick.Widgets.Border (hBorder, vBorder)
 import Brick.Widgets.Center (hCenter, vCenter)
@@ -22,15 +22,16 @@ import Brick.Widgets.Core (txt, viewport)
 import qualified Control.Exception as E
 import Control.Monad (Functor (fmap), forM, mapM)
 import Data.Bool (Bool)
-import Data.Eq (Eq ((==)))
+import Data.Eq (Eq ((==), (/=)))
 import Data.Function (flip, id)
 import Data.Int (Int)
-import Data.List (intersperse, map, splitAt, transpose, zip3, zipWith, (++), length)
+import Data.List (intersperse, map, splitAt, transpose, zip3, zipWith, (++), length, take, drop)
+import Lens.Micro((^.), to, (&), (.~))
 import qualified Data.Map as M
 import Data.Ord (Ord (max))
 import Data.Text (Text)
 import qualified Data.Text as Text
-import Graphics.Vty (imageHeight, imageWidth)
+import Graphics.Vty (imageHeight, imageWidth, charFill, horizCat)
 import Text.Read (Read)
 import Text.Show (Show)
 import Prelude (Applicative (pure), Foldable (maximum, sum), Num ((+), (-)), ($), (.), (<$>))
@@ -92,13 +93,42 @@ imageHeightNonEmpty im = max 1 (imageHeight im)
 
 imageWidthNonEmpty im = max 1 (imageWidth im)
 
-renderTable' :: Alignments -> Borders -> [Widget n] -> [[Widget n]] -> Widget n
-renderTable' alignment borders header rows' =
+-- columnWidths allRows = do
+--   cellResults <- forM allRows $ mapM Brick.render
+--   let byColumn = transpose cellResults
+--       colWidths = colWidth <$> byColumn
+
+data TableRenderMode = RenderOnlyHeader | RenderOnlyBody | RenderBoth
+  deriving(Eq)
+
+padTo :: Int -> Widget n -> Widget n
+padTo width p =
+  Widget Greedy (vSize p) $ do
+    result <- Brick.render p
+    c <- getContext
+    let rWidth = result ^. imageL . to imageWidth
+        rHeight = result^.imageL.to imageHeight
+        rightPaddingAmount = max 0 (width - rWidth)
+        rightPadding = charFill (c^.attrL) ' ' rightPaddingAmount rHeight
+        paddedImage = horizCat [ result^.imageL
+                               , rightPadding
+                               ]
+    if rightPaddingAmount == 0
+      then pure result
+      else pure $ result & imageL .~ paddedImage
+
+renderTable' :: TableRenderMode -> Alignments -> Borders -> [Widget n] -> [[Widget n]] -> Widget n
+renderTable' renderMode alignment borders header rows' =
   joinBorders $
     Widget Fixed Fixed $ do
       let allRows = header : rows'
       cellResults <- forM allRows $ mapM Brick.render
       let rowHeights = rowHeight <$> cellResults
+          byColumn = transpose cellResults
+          truncatedColumns = case renderMode of
+            RenderBoth -> byColumn
+            RenderOnlyHeader -> take 1 <$> byColumn
+            RenderOnlyBody -> drop 1 <$> byColumn
           colWidths = colWidth <$> byColumn
           allRowAligns =
             (\i -> M.findWithDefault (defaultRowAlignment alignment) i (rowAlignments alignment))
@@ -108,16 +138,21 @@ renderTable' alignment borders header rows' =
               <$> [0 .. length byColumn - 1]
           rowHeight = maximum . fmap (imageHeightNonEmpty . image)
           colWidth = maximum . fmap (imageWidthNonEmpty . image)
-          byColumn = transpose cellResults
           toW = Widget Fixed Fixed . pure
-          totalHeight = sum rowHeights
+          totalHeight =
+            case renderMode of
+              RenderOnlyBody -> sum rowHeights - 1
+              RenderOnlyHeader -> 1
+              RenderBoth -> sum rowHeights
           applyColAlignment align width w =
-            Widget Fixed Fixed $ do
-              result <- Brick.render w
+            Widget Fixed Fixed $
               case align of
-                AlignLeft -> pure result
-                AlignCenter -> Brick.render $ hLimit width $ hCenter $ toW result
-                AlignRight ->
+                AlignLeft -> Brick.render $ padTo width w
+                AlignCenter -> do
+                  result <- Brick.render w
+                  Brick.render $ hLimit width $ hCenter $ toW result
+                AlignRight -> do
+                  result <- Brick.render w
                   Brick.render $
                     padLeft (Pad (width - imageWidth (image result))) $
                       toW result
@@ -131,12 +166,13 @@ renderTable' alignment borders header rows' =
                   applyColAlignment hAlign width $
                     applyRowAlignment rHeight vAlign cell
                 maybeRowBorders = case rowBorderStyle borders of
-                  OnlyHeader -> insertAt 1 (hLimit width hBorder)
+                  OnlyHeader -> if renderMode /= RenderOnlyBody then insertAt 1 (hLimit width hBorder) else id
                   All -> intersperse (hLimit width hBorder)
                   None -> id
             Brick.render $ vBox $ maybeRowBorders paddedCells
-      columns <- mapM mkColumn $ zip3 allColAligns colWidths byColumn
-      let maybeColumnBorders =
+      columns <- mapM mkColumn $ zip3 allColAligns colWidths truncatedColumns
+      let 
+          maybeColumnBorders =
             if drawColumnBorders borders
               then
                 let rowBorderHeight = case rowBorderStyle borders of
@@ -158,7 +194,7 @@ spaceIfEmpty n | Text.null n = " "
 spaceIfEmpty n = n
 
 render :: (Ord n, Show n) => n -> Headings -> Rows -> CursorPosition -> Alignments -> Borders -> Widget n
-render viewportName headings' rows' cursorPosition' alignments borders = viewport viewportName Both renderedTable
+render viewportName headings' rows' cursorPosition' alignments borders = renderedHeader <=> viewport viewportName Both renderedBody
   where
     compiledRows = zipWith makeRow [0 ..] rows'
     selectedTxt = withAttr selectedAttr . txt
@@ -169,4 +205,5 @@ render viewportName headings' rows' cursorPosition' alignments borders = viewpor
         if i == cursorPosition'
           then visible (selectedTxt (spaceIfEmpty head)) : (selectedTxt . spaceIfEmpty <$> tail)
           else txt <$> cols
-    renderedTable = renderTable' alignments borders (txt <$> headings') compiledRows
+    renderedHeader = renderTable' RenderOnlyHeader alignments borders (txt <$> headings') compiledRows
+    renderedBody = renderTable' RenderOnlyBody alignments borders (txt <$> headings') compiledRows
