@@ -104,7 +104,9 @@ import qualified MyocardioApp.TablePure as Table
 import MyocardioApp.GlobalData (GlobalData(GlobalData), globalExerciseData, globalNow)
 import MyocardioApp.ResourceName (ResourceName (NameEditor, NameList))
 import MyocardioApp.UpdateResult (UpdateResult (UpdateResultContinue, UpdateResultHalt))
-import Prelude (subtract, (+))
+import Prelude (subtract, (+), Semigroup ((<>)))
+import Data.Text.IO (appendFile)
+import Text.Show (Show(show))
 
 data Model = Model
   { _editorFocus :: Bool,
@@ -125,7 +127,7 @@ init globalData =
     { _editorFocus = False,
       _editor = editorText NameEditor (Just 1) "",
       _tableCursor = 0,
-      _exerciseData = globalData ^. globalExerciseData,
+      _exerciseData = (globalData ^. globalExerciseData) & exercisesL %~ reorderExercises,
       _now = globalData ^. globalNow
     }
 
@@ -133,7 +135,7 @@ headings :: [Text]
 headings = ["Name", "Reps", "Done?", "Last Execution", "Groups"]
 
 exerciseRows :: Model -> [[Text]]
-exerciseRows model = makeRow <$> reorderExercises (model ^. exerciseData . exercisesL)
+exerciseRows model = makeRow <$> (model ^. exerciseData . exercisesL)
   where
     makeRow :: Exercise -> [Text]
     makeRow ex =
@@ -224,6 +226,12 @@ updateEditorFocused model e | confirmsEditor e = do
                             | otherwise = do
                                 newEditor <- handleEditorEvent' e (model ^. editor)
                                 pure $ UpdateResultContinue $ model & editor .~ newEditor
+
+-- log :: MonadIO m => Text -> m ()
+-- log logText = do
+--   now' <- liftIO getCurrentTime
+--   liftIO $ appendFile "/tmp/log.txt" (Text.pack (show now') <> ": " <> logText <> "\n")
+
 
 updateGlobal :: Model -> BrickEvent ResourceName e -> EventM ResourceName (UpdateResult Model)
 updateGlobal model e = case e of
