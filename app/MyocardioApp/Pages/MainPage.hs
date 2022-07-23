@@ -100,7 +100,7 @@ import MyocardioApp.ConfigJson
   )
 import Myocardio.Muscle (muscleToText)
 import Myocardio.Ranking (reorderExercises)
-import qualified MyocardioApp.TablePure as Table
+import qualified MyocardioApp.Table as Table
 import MyocardioApp.GlobalData (GlobalData(GlobalData), globalExerciseData, globalNow)
 import MyocardioApp.ResourceName (ResourceName (NameEditor, NameList))
 import MyocardioApp.UpdateResult (UpdateResult (UpdateResultContinue, UpdateResultHalt))

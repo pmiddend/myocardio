@@ -89,7 +89,7 @@ import MyocardioApp.Page (Page (PageMain, PageMuscles), isPageMain, isPageMuscle
 import qualified MyocardioApp.Pages.MainPage as MainPage
 import qualified MyocardioApp.Pages.MusclesPage as MusclesPage
 import MyocardioApp.ResourceName (ResourceName)
-import qualified MyocardioApp.TablePure as Table
+import qualified MyocardioApp.Table as Table
 import MyocardioApp.UpdateResult (UpdateResult (UpdateResultContinue, UpdateResultHalt))
 import Network.HTTP.Client (applyBasicAuth, httpLbs, newManager, parseRequest, responseBody)
 import Network.HTTP.Client.TLS (tlsManagerSettings)
