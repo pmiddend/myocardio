@@ -11,7 +11,6 @@ module Myocardio.Exercise
     nameL,
     musclesL,
     repsL,
-    categoryL,
     lastL,
     taggedL,
   )
@@ -37,13 +36,12 @@ data Exercise = Exercise
   { name :: Text,
     muscles :: [Muscle],
     reps :: Text,
-    category :: Text,
     last :: Maybe UTCTime,
     tagged :: Maybe UTCTime
   }
   deriving (Generic, Show, ToJSON, FromJSON, Eq)
 
-makeLensesFor [("name", "nameL"), ("muscles", "musclesL"), ("reps", "repsL"), ("category", "categoryL"), ("last", "lastL"), ("tagged", "taggedL")] ''Exercise
+makeLensesFor [("name", "nameL"), ("muscles", "musclesL"), ("reps", "repsL"), ("last", "lastL"), ("tagged", "taggedL")] ''Exercise
 
 isTagged :: Exercise -> Bool
 isTagged = isJust . view taggedL

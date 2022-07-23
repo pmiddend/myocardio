@@ -13,25 +13,6 @@ The input is expected in JSON format at the location =$HOME/.config/myocardio/da
 
 #+BEGIN_SRC json
 {
-    "muscles": [
-        "glute medius",
-        "quadriceps",
-        "core",
-        "side core",
-        "balance",
-        "lower back",
-        "calves",
-        "gluteus maximus",
-        "neck",
-        "deltoid",
-        "triceps",
-        "hip flexor",
-        "pectoralis",
-        "rotators"
-    ],
-    "categories": [
-        "normal"
-    ],
     "exercises": [
         {
             "muscles": [
@@ -42,7 +23,6 @@ The input is expected in JSON format at the location =$HOME/.config/myocardio/da
                 "quadriceps",
                 "hip flexor"
             ],
-            "category": "normal",
             "tagged": null,
             "reps": "3x10",
             "name": "Burpees",

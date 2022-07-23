@@ -28,7 +28,7 @@ import Data.Time.Clock
   ( UTCTime (UTCTime),
     addUTCTime,
   )
-import Myocardio.Exercise (Exercise (Exercise), name, muscles, tagged, last, category, reps)
+import Myocardio.Exercise (Exercise (Exercise), name, muscles, tagged, last, reps)
 import Myocardio.Muscle (Muscle (GluteusMaximus, Pecs))
 import Myocardio.Ranking
   ( rankTime,
@@ -63,13 +63,12 @@ defaultExercise name_ muscles_ last_ =
     { name = name_,
       muscles = muscles_,
       reps = "",
-      category = "",
       last = last_,
       tagged = Nothing
     }
 
 instance Arbitrary Exercise where
-  arbitrary = Exercise <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
+  arbitrary = Exercise <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
 
 spec :: Spec
 spec = do
