@@ -37,9 +37,7 @@ library:
   - time
   - text
   - aeson
-  - cryptohash-sha1
   - containers
-  - base16-bytestring
 
 executables:
   myocardio-exe:

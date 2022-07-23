@@ -3,7 +3,6 @@ module Myocardio.ExerciseId
     exerciseIdLength,
     takeId,
     listUnique,
-    calculateIds,
   )
 where
 

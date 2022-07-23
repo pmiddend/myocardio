@@ -27,7 +27,6 @@ library
       Myocardio.Endo
       Myocardio.Exercise
       Myocardio.ExerciseData
-      Myocardio.ExerciseId
       Myocardio.FormatTime
       Myocardio.Muscle
       Myocardio.MuscleWithTrainingState
@@ -42,9 +41,7 @@ library
   build-depends:
       aeson
     , base >=4.7 && <5
-    , base16-bytestring
     , containers
-    , cryptohash-sha1
     , microlens
     , microlens-platform
     , text
