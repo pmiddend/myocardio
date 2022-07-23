@@ -1,19 +1,22 @@
 * TODO Fix scolling behavior
+:LOGBOOK:
+CLOCK: [2022-07-23 Sa 12:11]
+:END:
 
 - We can scroll +1 last
 - Header line isn't sticky
 * TODO Add badges
-* DONE Add GitHub actions
-CLOSED: [2022-07-23 Sa 12:10]
-:LOGBOOK:
-CLOCK: [2022-07-23 Sa 12:10]--[2022-07-23 Sa 12:10] =>  0:00
-:END:
 * TODO Synchronize other way into webdav
 * TODO Specify muscle groups with percentage
 * TODO Redo "Human" without head this time
 * TODO Concept for running/endurance/power
 * TODO Create new exercises in UI
 * TODO Have a history of exercises
+* DONE Add GitHub actions
+CLOSED: [2022-07-23 Sa 12:10]
+:LOGBOOK:
+CLOCK: [2022-07-23 Sa 12:10]--[2022-07-23 Sa 12:10] =>  0:00
+:END:
 * DONE Fix "tag first exercise" bug
 CLOSED: [2022-07-23 Sa 11:54]
 
