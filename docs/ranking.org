@@ -26,13 +26,13 @@ where $\mathcal{P}$ is the powerset operator — doesn’t work, though, because
 So we assume another (finite) set $\textbf{Exercise}$ of exercise /names/. We then assign two functions
 
 \(
-m: \textbf{Exercise} \to \mathcal{P}(\textbf{Muscle})
+m \colon \textbf{Exercise} \to \mathcal{P}(\textbf{Muscle})
 \)
 
 descibing the muscles of an exercise and
 
 \(
-\ell: \textbf{Exercise} \to T
+\ell \colon \textbf{Exercise} \to T
 \)
 
 describing the latest execution time point.
@@ -56,21 +56,21 @@ This gives exercises that were just executed a low ranking (i.e. close to 0) and
 
 The total ranking for an exercise is simply \( \rho(e) = \rho_t(e) + \rho_c(e) \)
 
-** Greedy Algorithm
+** Greedy Algorithm, imperative
 
 We could now just rank all our exercises by $\rho$. However, two exercises that feature the same or similar muscle groups could be included back-to-back in this plan, and that’s a non-goal.
 
 In order to rank the exercises, we employ a greedy algorithm in order to construct an order $o_i$ for exercises (where $i \in \mathbb{N}$). We assume $|\textbf{Exercise}| \geq 2$.
 
 1. Let $i=0$. Take the exercise $e_i=\text{argmax}_{e \in \textbf{Exercise}} \{ \rho(e) \}$ with the highest ranking. Define $o_i=e_i$ Define the rest $R_i=\textbf{Exercise} \setminus \{o_i\}$
-2. If $|R_i| = \{ e_{i+1} \}$, choose $o_{i+1}=e_{i+1}$ and terminate.
+2. If $|R_i| = \{ e \}$ for some $e \in \textbf{Exercise}$, choose $o_{i+1}=e$ and terminate.
 3. Define $d_i: R_i \to \mathbb{N}$ as $d_i(e) = |m(e) \cap m(o_i)|$. This is a ranking of how many muscle groups are the same as the first exercise (d for “Durchschnitt”, meaning intersection in German).
 4. Define $D_i: \mathbb{N} \to \mathcal{P}(R_i)$ as
    \begin{equation}
-   D_i(n) = \{e \in R_i | d_i(e) = n\}
+   D_i(n) = \{e \in R_i \mid d_i(e) = n\}
    \end{equation}
    This is a ranking of how many muscle groups are the same as the first exercise.
-5. Define $N_i = \text{argmin}_{n \in \mathbb{N}} \{ D_i(n) | D_i(n) \neq \emptyset \}$. Thus, $D_i(N_i)$ will be the group of exercises with the least number of muscles in common with the chosen one, $o_i$. This exists, because we assumed to have at least one exercise left in step 2, and even if all exercises have all muscles in common, we will have a group for them.
+5. Define $N_i = \text{argmin}_{n \in \mathbb{N}} \{ D_i(n) \mid D_i(n) \neq \emptyset \}$. Thus, $D_i(N_i)$ will be the group of exercises with the least number of muscles in common with the chosen one, $o_i$. This exists, because we assumed to have at least one exercise left in step 2, and even if all exercises have all muscles in common, we will have a group for them.
 6. From $D_i(N_i)$, choose the exercise with the highest rank $\rho$ as the next exercise $o_{i+1}$. Define $R_{i+1}=R_i \setminus \{ o_{i+1} \}$. Go to step 2 (reindexing $i \to i+1$).
 
 This algorithm will terminate after at most $|\textbf{Exercise}|$ steps, since $|R_i|$ is stricly monotonically decreasing as $i$ increases.
