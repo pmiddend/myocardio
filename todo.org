@@ -3,8 +3,8 @@
 CLOCK: [2022-07-23 Sa 12:11]
 :END:
 
-- We can scroll +1 last
-- Header line isn't sticky
+- [X] We can scroll +1 last
+- [ ] Header line isn't sticky
 * TODO Add badges
 * TODO Synchronize other way into webdav
 * TODO Specify muscle groups with percentage

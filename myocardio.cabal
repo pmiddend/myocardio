@@ -61,7 +61,7 @@ executable myocardio-exe
       MyocardioApp.Pages.MainPage
       MyocardioApp.Pages.MusclesPage
       MyocardioApp.ResourceName
-      MyocardioApp.TablePure
+      MyocardioApp.Table
       MyocardioApp.TextMarkup
       MyocardioApp.UpdateResult
       Paths_myocardio
