@@ -1,17 +1,23 @@
-* TODO Fix "tag first exercise" bug
-
-- How do we reproduce this even?
 * TODO Fix scolling behavior
+
+- We can scroll +1 last
+- Header line isn't sticky
 * TODO Synchronize other way into webdav
-* TODO Remove "categories" notion (for now)
-:LOGBOOK:
-CLOCK: [2022-07-23 Sa 11:40]
-:END:
 * TODO Specify muscle groups with percentage
 * TODO Redo "Human" without head this time
 * TODO Concept for running/endurance/power
 * TODO Create new exercises in UI
 * TODO Have a history of exercises
+* DONE Fix "tag first exercise" bug
+CLOSED: [2022-07-23 Sa 11:54]
+
+- How do we reproduce this even?
+- Start, go 4 down, press 't', element prior to last will be selected
+* DONE Remove "categories" notion (for now)
+CLOSED: [2022-07-23 Sa 11:42]
+:LOGBOOK:
+CLOCK: [2022-07-23 Sa 11:40]--[2022-07-23 Sa 11:42] =>  0:02
+:END:
 * CANCELLED Modify ranking to promote "singular" exercises
 CLOSED: [2022-07-23 Sa 11:40]
 * DONE Formally describe algorithm
