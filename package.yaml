@@ -40,7 +40,6 @@ library:
   - cryptohash-sha1
   - containers
   - base16-bytestring
-  - composition
 
 executables:
   myocardio-exe:
