@@ -104,9 +104,7 @@ import qualified MyocardioApp.TablePure as Table
 import MyocardioApp.GlobalData (GlobalData(GlobalData), globalExerciseData, globalNow)
 import MyocardioApp.ResourceName (ResourceName (NameEditor, NameList))
 import MyocardioApp.UpdateResult (UpdateResult (UpdateResultContinue, UpdateResultHalt))
-import Prelude (subtract, (+), Semigroup ((<>)))
-import Data.Text.IO (appendFile)
-import Text.Show (Show(show))
+import Prelude (subtract, (+), (-))
 
 data Model = Model
   { _editorFocus :: Bool,
@@ -211,7 +209,7 @@ handleEditorEvent' (VtyEvent e) s = handleEditorEvent e s
 handleEditorEvent' _ s = pure s
 
 modifyCursorPosition :: Model -> (Int -> Int) -> Int -> Int
-modifyCursorPosition model f current = clamp 0 (length (model ^. exerciseData . exercisesL)) (f current)
+modifyCursorPosition model f current = clamp 0 (length (model ^. exerciseData . exercisesL) - 1) (f current)
 
 updateEditorFocused :: Model -> BrickEvent ResourceName e -> EventM ResourceName (UpdateResult Model)
 updateEditorFocused model e | confirmsEditor e = do
