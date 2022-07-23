@@ -2,14 +2,18 @@
 
 - How do we reproduce this even?
 * TODO Fix scolling behavior
-* TODO Modify ranking to promote "singular" exercises
 * TODO Synchronize other way into webdav
 * TODO Remove "categories" notion (for now)
+:LOGBOOK:
+CLOCK: [2022-07-23 Sa 11:40]
+:END:
 * TODO Specify muscle groups with percentage
 * TODO Redo "Human" without head this time
 * TODO Concept for running/endurance/power
 * TODO Create new exercises in UI
 * TODO Have a history of exercises
+* CANCELLED Modify ranking to promote "singular" exercises
+CLOSED: [2022-07-23 Sa 11:40]
 * DONE Formally describe algorithm
 CLOSED: [2022-07-22 Fr 11:50]
 * DONE Fix error with stack/ghc/ghcide mismatch
