@@ -1,4 +1,7 @@
 * myocardio – automagically generate and display split plans
+
+[[https://github.com/pmiddend/myocardio/actions/workflows/build-with-stack.yaml/badge.svg]]
+
 ** How does it work
 
 myocardio is a small utility to generate exercise split plans for you. It recieves a list of exercises from you. For each exercise, you specify:
