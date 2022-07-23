@@ -12,6 +12,8 @@ myocardio is a small utility to generate exercise split plans for you. It reciev
 
 The tool then generates and displays an exercise plan for you that /tries/ not to include exercises with big overlaps in muscle groups consecutively. It also prioritizes exercises that you haven’t done for some time.
 
+The algorithm is described in [[./docs/ranking.pdf][this PDF file]].
+
 The input is expected in JSON format at the location =$HOME/.config/myocardio/data.json= and looks like this:
 
 #+BEGIN_SRC json
@@ -35,11 +37,15 @@ The input is expected in JSON format at the location =$HOME/.config/myocardio/da
 }
 #+END_SRC
 
-As you can see, you have a list of muscle groups and categories and then a list of exercises. The format should be self-explanatory.
+As you can see, the JSON is just a list of exercises. The format should be self-explanatory.
 
 ** Screenshot
 
+#+CAPTION: A sample exercise plan (with some exercises named in German)
 [[./screenshot.png]]
+
+#+CAPTION: The muscle display
+[[./screenshot2.png]]
 
 ** Key bindings
 
@@ -56,5 +62,7 @@ As you can see, you have a list of muscle groups and categories and then a list 
 Just clone the repository and type:
 
 #+begin_example
-cabal new-run myocardio
+stack run
 #+end_example
+
+This needs the [[https://docs.haskellstack.org/en/stable/GUIDE/][stack]] build tool for Haskell.
