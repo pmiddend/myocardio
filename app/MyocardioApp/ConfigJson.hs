@@ -11,7 +11,7 @@ module MyocardioApp.ConfigJson
     webdavL,
     mkConfigDir,
     readConfigFile,
-    writeConfigFile,
+    writeDataFile,
     dataFileName,
     readDataFile,
     Config (..),
@@ -91,8 +91,8 @@ readDataFile = readJsonFile emptyExerciseData dataFileName
 readConfigFile :: IO Config
 readConfigFile = readJsonFile emptyConfig configFileName
 
-writeConfigFile :: ExerciseData -> IO ()
-writeConfigFile d = do
+writeDataFile :: ExerciseData -> IO ()
+writeDataFile d = do
   mkConfigDir
-  fn <- configFileName
+  fn <- dataFileName
   writeFile fn (encodePretty d)
