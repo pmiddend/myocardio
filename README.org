@@ -62,7 +62,5 @@ As you can see, the JSON is just a list of exercises. The format should be self-
 Just clone the repository and type:
 
 #+begin_example
-stack run
+cabal v2-run myocardio-exe
 #+end_example
-
-This needs the [[https://docs.haskellstack.org/en/stable/GUIDE/][stack]] build tool for Haskell.
