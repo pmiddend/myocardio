@@ -1,8 +1,16 @@
+* TODO Try with cabal instead of stack
+
+- [X] Create (Nix) (dir)env with cabal + ghc in it that works
+  + I want to try building with pkgsStatic, so I need a Nix expression
+  + Otherwise, cabal is fine
+- [ ] Pin dependencies appropriately
+- [ ] Build with Nix
+- [ ] Build statically with Nix
+* TODO Create/Edit/Delete new exercises in UI
 * TODO Synchronize other way into webdav
 * TODO Specify muscle groups with percentage
 * TODO Redo "Human" without head this time
 * TODO Concept for running/endurance/power
-* TODO Create new exercises in UI
 * TODO Have a history of exercises
 * TODO Rank exercises by how many other exercises have this muscle group
 * DONE Add badges
