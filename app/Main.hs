@@ -3,7 +3,6 @@
 
 module Main (main) where
 
-import Data.Bool(Bool(True,False), not)
 import Brick.AttrMap
   ( AttrMap,
     AttrName,
@@ -33,6 +32,7 @@ import Control.Applicative (pure)
 import Control.Monad (void)
 import Data.Aeson (eitherDecode)
 import Data.Bifunctor (first)
+import Data.Bool (Bool (False, True), not)
 import qualified Data.ByteString.Char8 as BS8
 import qualified Data.ByteString.Lazy as BSL
 import Data.Either (Either (Left, Right))
@@ -82,7 +82,6 @@ import MyocardioApp.ConfigJson
 import MyocardioApp.GlobalData (GlobalData (GlobalData))
 import MyocardioApp.Model
   ( Model (Model),
-    modelGlobalData,
     modelPage,
   )
 import MyocardioApp.Page (Page (PageMain, PageMuscles), isPageMain, isPageMuscles)
@@ -130,7 +129,9 @@ update model e =
   case e of
     VtyEvent (EvKey KEsc []) -> halt model
     VtyEvent (EvKey (KFun 1) []) ->
-      continue (model & modelPage .~ PageMain (MainPage.init (model ^. modelGlobalData)))
+      case model ^. modelPage of
+        PageMuscles musclesModel -> continue (model & modelPage .~ PageMain (MainPage.init (MusclesPage.deinit musclesModel)))
+        PageMain _ -> continue model
     VtyEvent (EvKey (KFun 2) []) ->
       case model ^. modelPage of
         PageMuscles _ -> continue model
