@@ -39,6 +39,7 @@ import Data.Ord
   ( Down (Down),
     Ord ((<)),
   )
+import Data.Time.Calendar (Day, diffDays)
 import Data.Time.Clock
   ( UTCTime (utctDay),
   )
@@ -47,12 +48,13 @@ import Data.Tuple
   )
 import Lens.Micro ((^.))
 import Lens.Micro.Platform (makeLensesFor, view)
-import Myocardio.Exercise (Exercise, lastL, musclesL, nameL, last)
+import Myocardio.Exercise (Exercise, last, lastL, musclesL, nameL)
 import Myocardio.Muscle (Muscle, allMuscles)
 import Myocardio.MuscleWithTrainingState (MuscleWithTrainingState (MuscleWithTrainingState))
 import Myocardio.TrainingState (TrainingState (Bad, Good, Medium))
 import Myocardio.Util (utcTimeDayDiff)
 import qualified Myocardio.Util as Util
+import Text.Show (Show)
 import Prelude
   ( Double,
     Traversable (traverse),
@@ -62,9 +64,6 @@ import Prelude
     (-),
     (/),
   )
-import Debug.Trace (traceShowId)
-import Text.Show (Show)
-import Data.Time.Calendar (Day, diffDays)
 
 exerciseGroups :: Exercise -> Int
 exerciseGroups = length . view musclesL
@@ -93,7 +92,8 @@ rankTime exs =
 data RankedExercise = RankedExercise
   { _reExercise :: Exercise,
     _reRank :: Double
-  } deriving(Show)
+  }
+  deriving (Show)
 
 makeLensesFor [("_reExercise", "exerciseL"), ("_reRank", "rankL")] ''RankedExercise
 
@@ -101,13 +101,16 @@ rankExercises :: [Exercise] -> [Double]
 rankExercises exs = zipWith (+) (rankTime exs) (rankGroups exs)
 
 groupByToMap :: Ord k => (a -> k) -> [a] -> Map.Map k (NE.NonEmpty a)
-groupByToMap f = Map.fromList . ((\groupElements -> (f (NE.head groupElements), groupElements)) <$>) . NE.groupWith f
+groupByToMap f = Map.fromList . ((\groupElements -> (f (NE.head groupElements), groupElements)) <$>) . NE.groupAllWith f
 
 reorderWithChosenElement _ [] = []
 reorderWithChosenElement chosen xs =
-  let intersectComparator e = length ((e ^. exerciseL . musclesL) `intersect` (chosen ^. exerciseL . musclesL))
+  let intersectComparator :: RankedExercise -> Int
+      intersectComparator e = length ((e ^. exerciseL . musclesL) `intersect` (chosen ^. exerciseL . musclesL))
+      groupedByIntersection :: Map.Map Int (NE.NonEmpty RankedExercise)
       groupedByIntersection = groupByToMap intersectComparator xs
-      nextExercise = NE.head (NE.sortWith (Down . view rankL) (snd (Map.findMin groupedByIntersection)))
+      minGroup = Map.findMin groupedByIntersection
+      nextExercise = NE.head (NE.sortWith (Down . view rankL) (snd minGroup))
       xsWithoutNext = filter ((/= (nextExercise ^. exerciseL . nameL)) . view (exerciseL . nameL)) xs
    in nextExercise : reorderWithChosenElement nextExercise xsWithoutNext
 
@@ -119,7 +122,7 @@ reorderRanked (x : xs) = x : reorderWithChosenElement x xs
 zipWithPrevious g f xs = zipWith f xs (g xs)
 
 reorderPreRanked :: [Exercise] -> [Exercise]
-reorderPreRanked = (view exerciseL <$>) . reorderRanked . traceShowId . sortOn (Down . view rankL) . zipWithPrevious rankExercises RankedExercise
+reorderPreRanked = (view exerciseL <$>) . reorderRanked . sortOn (Down . view rankL) . zipWithPrevious rankExercises RankedExercise
 
 reorderExercises :: [Exercise] -> [Exercise]
 reorderExercises = reorderPreRanked
