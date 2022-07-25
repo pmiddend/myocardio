@@ -40,15 +40,14 @@ import Data.Ord
     Ord ((<)),
   )
 import Data.Time.Clock
-  ( UTCTime,
-    diffUTCTime,
+  ( UTCTime (utctDay),
   )
 import Data.Tuple
   ( snd,
   )
 import Lens.Micro ((^.))
 import Lens.Micro.Platform (makeLensesFor, view)
-import Myocardio.Exercise (Exercise, lastL, musclesL, nameL)
+import Myocardio.Exercise (Exercise, lastL, musclesL, nameL, last)
 import Myocardio.Muscle (Muscle, allMuscles)
 import Myocardio.MuscleWithTrainingState (MuscleWithTrainingState (MuscleWithTrainingState))
 import Myocardio.TrainingState (TrainingState (Bad, Good, Medium))
@@ -58,12 +57,14 @@ import Prelude
   ( Double,
     Traversable (traverse),
     fromIntegral,
-    realToFrac,
     (*),
     (+),
     (-),
     (/),
   )
+import Debug.Trace (traceShowId)
+import Text.Show (Show)
+import Data.Time.Calendar (Day, diffDays)
 
 exerciseGroups :: Exercise -> Int
 exerciseGroups = length . view musclesL
@@ -73,25 +74,26 @@ rankGroups = ((fromIntegral . exerciseGroups) <$>)
 
 rankTime :: [Exercise] -> [Double]
 rankTime exs =
-  let minmax :: Maybe (UTCTime, UTCTime)
-      minmax = (minimum &&& maximum) <$> traverse (view lastL) exs
-      lerp :: UTCTime -> UTCTime -> UTCTime -> Double
+  let extractLastDay = (utctDay <$>) . last
+      minmax :: Maybe (Day, Day)
+      minmax = (minimum &&& maximum) <$> traverse extractLastDay exs
+      lerp :: Day -> Day -> Day -> Double
       lerp min max v
         | min == max = 0
         | otherwise =
           100.0
-            - realToFrac (diffUTCTime v min * 100 / diffUTCTime max min)
-      rank :: UTCTime -> UTCTime -> Maybe UTCTime -> Double
+            - fromIntegral (diffDays v min * 100) / fromIntegral (diffDays max min)
+      rank :: Day -> Day -> Maybe Day -> Double
       rank min max = maybe 150 (lerp min max)
    in maybe
         (const 0 <$> exs)
-        (\(min, max) -> rank min max <$> (view lastL <$> exs))
+        (\(min, max) -> rank min max <$> (extractLastDay <$> exs))
         minmax
 
 data RankedExercise = RankedExercise
   { _reExercise :: Exercise,
     _reRank :: Double
-  }
+  } deriving(Show)
 
 makeLensesFor [("_reExercise", "exerciseL"), ("_reRank", "rankL")] ''RankedExercise
 
@@ -117,7 +119,7 @@ reorderRanked (x : xs) = x : reorderWithChosenElement x xs
 zipWithPrevious g f xs = zipWith f xs (g xs)
 
 reorderPreRanked :: [Exercise] -> [Exercise]
-reorderPreRanked = (view exerciseL <$>) . reorderRanked . sortOn (Down . view rankL) . zipWithPrevious rankExercises RankedExercise
+reorderPreRanked = (view exerciseL <$>) . reorderRanked . traceShowId . sortOn (Down . view rankL) . zipWithPrevious rankExercises RankedExercise
 
 reorderExercises :: [Exercise] -> [Exercise]
 reorderExercises = reorderPreRanked
