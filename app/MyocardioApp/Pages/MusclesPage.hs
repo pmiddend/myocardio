@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module MyocardioApp.Pages.MusclesPage (init, view, trainingStateToAttr, cursorLocation, update, Model, attrs) where
+module MyocardioApp.Pages.MusclesPage (init, deinit, view, trainingStateToAttr, cursorLocation, update, Model, attrs) where
 
 import Brick.AttrMap
   ( AttrName,
@@ -74,6 +74,9 @@ type Model = GlobalData
 
 init :: GlobalData -> Model
 init = id
+
+deinit :: GlobalData -> Model
+deinit = id
 
 view :: Model -> Widget ResourceName
 view s =
