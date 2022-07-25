@@ -51,7 +51,7 @@ import Test.QuickCheck.Instances.Semigroup
 import Test.QuickCheck.Instances.Text ()
 import Test.QuickCheck.Instances.Time ()
 import Prelude
-  ( realToFrac,
+  ( realToFrac, Num ((*)),
   )
 import Data.Int (Int)
 
@@ -75,10 +75,17 @@ spec = do
   describe "rank time" $ do
     it "should favor older exercises" $ do
       let oldDate = UTCTime (fromGregorian 2018 12 3) 0
-          newDate = realToFrac (60 :: Int) `addUTCTime` oldDate
+          newDate = realToFrac (86400 :: Int) `addUTCTime` oldDate
           oldExercise = defaultExercise "older" [Pecs] (Just oldDate)
           newExercise = defaultExercise "newer" [Pecs] (Just newDate)
       rankTime [newExercise, oldExercise] `shouldBe` [0, 100]
+
+    it "should work on day basis" $ do
+      let oldDate = UTCTime (fromGregorian 2018 12 3) 0
+          newDate = realToFrac (60 :: Int) `addUTCTime` oldDate
+          oldExercise = defaultExercise "older" [Pecs] (Just oldDate)
+          newExercise = defaultExercise "newer" [Pecs] (Just newDate)
+      rankTime [newExercise, oldExercise] `shouldBe` [0, 0]
 
     it "should favor exercises w/o date" $ do
       let oldDate = UTCTime (fromGregorian 2018 12 3) 0
@@ -93,8 +100,8 @@ spec = do
 
     it "should lerp across time" $ do
       let oldDate = UTCTime (fromGregorian 2018 12 3) 0
-          middleDate = realToFrac (60 :: Int) `addUTCTime` oldDate
-          newDate = realToFrac (120 :: Int) `addUTCTime` oldDate
+          middleDate = realToFrac (86400 :: Int) `addUTCTime` oldDate
+          newDate = realToFrac (2 * 86400 :: Int) `addUTCTime` oldDate
           oldExercise = defaultExercise "older" [Pecs] (Just oldDate)
           middleExercise = defaultExercise "older" [Pecs] (Just middleDate)
           newExercise = defaultExercise "newer" [Pecs] (Just newDate)
