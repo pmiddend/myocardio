@@ -1,6 +1,16 @@
 * myocardio – automagically generate and display split plans
 
-[[https://github.com/pmiddend/myocardio/actions/workflows/build-with-stack.yaml/badge.svg]]
+#+begin_html
+<a href="https://github.com/pmiddend/myocardio/actions/workflows/build-with-nix.yaml">
+<img alt="Static build using Nix" src="[[https://github.com/pmiddend/myocardio/actions/workflows/build-with-nix.yaml/badge.svg]]" />
+</a>
+#+end_html
+
+#+begin_html
+<a href="https://github.com/pmiddend/myocardio/actions/workflows/build-with-cabal.yaml">
+<img alt="Build using cabal" src="[[https://github.com/pmiddend/myocardio/actions/workflows/build-with-cabal.yaml/badge.svg]]" />
+</a>
+#+end_html
 
 ** How does it work
 
