@@ -96,7 +96,7 @@ import Myocardio.Exercise
 import Myocardio.ExerciseData (ExerciseData, exercisesL)
 import Myocardio.FormatTime (formatTimeDiff)
 import MyocardioApp.ConfigJson
-  ( writeConfigFile,
+  ( writeDataFile,
   )
 import Myocardio.Muscle (muscleToText)
 import Myocardio.Ranking (reorderExercises)
@@ -177,7 +177,7 @@ switchExercises model newExs =
             . exercisesL
           .~ newExs'
    in do
-        liftIO (writeConfigFile (newModel ^. exerciseData))
+        liftIO (writeDataFile (newModel ^. exerciseData))
         pure newModel
 
 withCurrentExercise :: Model -> (Exercise -> Int -> EventM ResourceName (UpdateResult Model)) -> EventM ResourceName (UpdateResult Model)
