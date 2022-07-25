@@ -1,9 +1,4 @@
-cabal-version: 1.12
-
--- This file has been generated from package.yaml by hpack version 0.34.4.
---
--- see: https://github.com/sol/hpack
-
+cabal-version:  2.2
 name:           myocardio
 version:        2.0.0
 description:    Please see the README on GitHub at <https://github.com/pmiddend/myocardio#readme>
@@ -12,7 +7,7 @@ bug-reports:    https://github.com/pmiddend/myocardio/issues
 author:         Philipp Middendorf
 maintainer:     pmidden@mailbox.org
 copyright:      2022 Philipp Middendorf
-license:        BSD3
+license:        GPL-3.0-or-later
 license-file:   LICENSE
 build-type:     Simple
 extra-source-files:
@@ -22,7 +17,12 @@ source-repository head
   type: git
   location: https://github.com/pmiddend/myocardio
 
+common shared-properties
+  default-language: Haskell2010
+  
 library
+  import: shared-properties
+  ghc-options: -Weverything -Wno-missing-safe-haskell-mode -Wno-unsafe -Wno-missing-deriving-strategies -Wno-all-missed-specialisations -Wno-monomorphism-restriction -Wno-safe -Wno-missing-local-signatures -Wno-prepositive-qualified-module
   exposed-modules:
       Myocardio.Endo
       Myocardio.Exercise
@@ -33,11 +33,8 @@ library
       Myocardio.Ranking
       Myocardio.TrainingState
       Myocardio.Util
-  other-modules:
-      Paths_myocardio
   hs-source-dirs:
       src
-  ghc-options: -Weverything -Wno-missing-safe-haskell-mode -Wno-unsafe -Wno-missing-deriving-strategies -Wno-all-missed-specialisations -Wno-monomorphism-restriction -Wno-safe -Wno-missing-local-signatures -Wno-prepositive-qualified-module -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       aeson
     , base >=4.7 && <5
@@ -46,10 +43,11 @@ library
     , microlens-platform
     , text
     , time
-  default-language: Haskell2010
 
 executable myocardio-exe
+  import: shared-properties
   main-is: Main.hs
+  ghc-options: -Weverything -Wno-missing-safe-haskell-mode -Wno-unsafe -Wno-missing-deriving-strategies -Wno-all-missed-specialisations -Wno-monomorphism-restriction -Wno-safe -Wno-missing-local-signatures -Wno-prepositive-qualified-module -threaded -rtsopts -with-rtsopts=-N
   other-modules:
       MyocardioApp.BrickUtil
       MyocardioApp.ConfigJson
@@ -64,15 +62,14 @@ executable myocardio-exe
       MyocardioApp.Table
       MyocardioApp.TextMarkup
       MyocardioApp.UpdateResult
-      Paths_myocardio
   hs-source-dirs:
       app
-  ghc-options: -Weverything -Wno-missing-safe-haskell-mode -Wno-unsafe -Wno-missing-deriving-strategies -Wno-all-missed-specialisations -Wno-monomorphism-restriction -Wno-safe -Wno-missing-local-signatures -Wno-prepositive-qualified-module -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       aeson
     , aeson-pretty
     , base >=4.7 && <5
-    , brick
+    -- the version currently in NixOS (unfortunately)
+    , brick <= 0.68.1
     , bytestring
     , containers
     , directory
@@ -87,17 +84,16 @@ executable myocardio-exe
     , time
     , vty
     , xdg-basedir
-  default-language: Haskell2010
 
 test-suite myocardio-test
+  import: shared-properties
+  ghc-options: -Weverything -Wno-missing-safe-haskell-mode -Wno-unsafe -Wno-missing-deriving-strategies -Wno-all-missed-specialisations -Wno-monomorphism-restriction -Wno-safe -Wno-missing-local-signatures -Wno-prepositive-qualified-module -threaded -rtsopts -with-rtsopts=-N
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
       RankingSpec
-      Paths_myocardio
   hs-source-dirs:
       test-suite
-  ghc-options: -Weverything -Wno-missing-safe-haskell-mode -Wno-unsafe -Wno-missing-deriving-strategies -Wno-all-missed-specialisations -Wno-monomorphism-restriction -Wno-safe -Wno-missing-local-signatures -Wno-prepositive-qualified-module -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       QuickCheck
     , base >=4.7 && <5
@@ -105,4 +101,3 @@ test-suite myocardio-test
     , myocardio
     , quickcheck-instances
     , time
-  default-language: Haskell2010
