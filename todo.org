@@ -4,6 +4,7 @@
 * TODO Concept for running/endurance/power
 * TODO Create new exercises in UI
 * TODO Have a history of exercises
+* TODO Rank exercises by how many other exercises have this muscle group
 * DONE Add badges
 CLOSED: [2022-07-23 Sa 14:35]
 * DONE Fix scolling behavior
