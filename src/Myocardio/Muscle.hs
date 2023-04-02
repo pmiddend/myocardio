@@ -4,11 +4,13 @@ module Myocardio.Muscle
   ( Muscle
       ( GluteusMaximus,
         GluteusMedius,
+        SerratusAnterior,
         Quadriceps,
         Core,
         SideCore,
         LowerBack,
         UpperBack,
+        Balance,
         Calves,
         Neck,
         Deltoid,
@@ -44,6 +46,7 @@ data Muscle
   = GluteusMaximus
   | GluteusMedius
   | Quadriceps
+  | Balance
   | Core
   | SideCore
   | LowerBack
@@ -54,6 +57,7 @@ data Muscle
   | Triceps
   | HipFlexor
   | Pecs
+  | SerratusAnterior
   | Rotators
   | Hamstrings
   deriving (Eq, Ord, Show, Enum, Bounded)
@@ -62,8 +66,13 @@ allMuscles :: [Muscle]
 allMuscles = enumFromTo minBound maxBound
 
 muscleFromText "gluteus maximus" = Just GluteusMaximus
+muscleFromText "glute maximus" = Just GluteusMaximus
+muscleFromText "glute medius" = Just GluteusMedius
 muscleFromText "gluteus medius" = Just GluteusMedius
 muscleFromText "quadriceps" = Just Quadriceps
+muscleFromText "serratus anterior" = Just SerratusAnterior
+muscleFromText "back quadriceps" = Just Quadriceps
+muscleFromText "balance" = Just Balance
 muscleFromText "core" = Just Core
 muscleFromText "side core" = Just SideCore
 muscleFromText "lower back" = Just LowerBack
@@ -71,15 +80,19 @@ muscleFromText "upper back" = Just UpperBack
 muscleFromText "calves" = Just Calves
 muscleFromText "neck" = Just Neck
 muscleFromText "deltoid" = Just Deltoid
+muscleFromText "delta" = Just Deltoid
 muscleFromText "triceps" = Just Triceps
 muscleFromText "hip flexor" = Just HipFlexor
 muscleFromText "pecs" = Just Pecs
+muscleFromText "pectoralis" = Just Pecs
 muscleFromText "rotators" = Just Rotators
 muscleFromText "hamstrings" = Just Hamstrings
 muscleFromText _ = Nothing
 
 muscleToText :: IsString p => Muscle -> p
 muscleToText GluteusMaximus = "gluteus maximus"
+muscleToText Balance = "balance"
+muscleToText SerratusAnterior = "serratus anterior"
 muscleToText GluteusMedius = "gluteus medius"
 muscleToText Quadriceps = "quadriceps"
 muscleToText Core = "core"

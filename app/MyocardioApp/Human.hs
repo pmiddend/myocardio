@@ -26,6 +26,8 @@ import Myocardio.Muscle
         GluteusMaximus,
         GluteusMedius,
         Hamstrings,
+	Balance,
+	SerratusAnterior,
         HipFlexor,
         LowerBack,
         Neck,
@@ -114,6 +116,8 @@ data LineSpansWithFrontOrBack = LineSpansWithFrontOrBack
   }
 
 muscleToSpans :: Muscle -> LineSpansWithFrontOrBack
+muscleToSpans Balance = LineSpansWithFrontOrBack Back []
+muscleToSpans SerratusAnterior = LineSpansWithFrontOrBack Back []
 muscleToSpans GluteusMaximus = LineSpansWithFrontOrBack Back [LineSpan 14 10 11, LineSpan 15 10 11, LineSpan 14 13 14, LineSpan 15 13 14]
 muscleToSpans GluteusMedius = LineSpansWithFrontOrBack Back [LineSpan 14 8 9, LineSpan 15 8 9, LineSpan 14 15 15, LineSpan 15 15 15]
 muscleToSpans Quadriceps = LineSpansWithFrontOrBack Front [LineSpan 16 8 9, LineSpan 17 8 9, LineSpan 16 14 15, LineSpan 17 14 15]
