@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: CC0-1.0
 
 {
-  description = "My haskell application";
+  description = "myocardio";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs";
@@ -20,17 +20,21 @@
         jailbreakUnbreak = pkg:
           pkgs.haskell.lib.doJailbreak (pkg.overrideAttrs (_: { meta = { }; }));
 
-        # DON'T FORGET TO PUT YOUR PACKAGE NAME HERE, REMOVING `throw`
         packageName = "myocardio";
-      in {
+      in
+      {
         packages.${packageName} =
           haskellPackages.callCabal2nix packageName self rec {
-            # Dependency overrides go here
+            vty = (haskellPackages.vty.override {
+              terminfo = haskellPackages.terminfo_0_4_1_5;
+            });
           };
 
-	packages."${packageName}-static" = pkgs.pkgsStatic.haskellPackages.callCabal2nix packageName self rec {
-            # Dependency overrides go here
-          };
+        packages."${packageName}-static" = pkgs.pkgsStatic.haskellPackages.callCabal2nix packageName self rec {
+          vty = (pkgs.pkgsStatic.haskellPackages.vty.override {
+            terminfo = pkgs.pkgsStatic.haskellPackages.terminfo_0_4_1_5;
+          });
+        };
 
         packages.default = self.packages.${system}.${packageName};
         defaultPackage = self.packages.${system}.default;

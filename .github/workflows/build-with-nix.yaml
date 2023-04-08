@@ -6,8 +6,9 @@ jobs:
     steps:
     - uses: actions/checkout@v2.4.0
     - uses: cachix/install-nix-action@v19
+    - run: cat flake.lock
     - run: nix build .#myocardio-static
-    - run nix flake check
+    - run: nix flake check
     - name: Archive static build
       uses: actions/upload-artifact@v3
       with:
