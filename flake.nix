@@ -11,42 +11,59 @@
   };
 
   outputs = { self, nixpkgs, flake-utils }:
-    flake-utils.lib.eachDefaultSystem (system:
-      let
-        pkgs = nixpkgs.legacyPackages.${system};
-
-        haskellPackages = pkgs.haskellPackages;
-
-        jailbreakUnbreak = pkg:
-          pkgs.haskell.lib.doJailbreak (pkg.overrideAttrs (_: { meta = { }; }));
-
-        packageName = "myocardio";
-      in
-      {
-        packages.${packageName} =
-          haskellPackages.callCabal2nix packageName self rec {
-            vty = (haskellPackages.vty.override {
-              terminfo = haskellPackages.terminfo_0_4_1_5;
-            });
+    flake-utils.lib.eachDefaultSystem
+      (system:
+        let
+          pkgs = import nixpkgs {
+            inherit system;
+            overlays = [ ];
           };
 
-        packages."${packageName}-static" = pkgs.pkgsStatic.haskellPackages.callCabal2nix packageName self rec {
-          vty = (pkgs.pkgsStatic.haskellPackages.vty.override {
-            terminfo = pkgs.pkgsStatic.haskellPackages.terminfo_0_4_1_5;
-          });
-        };
+          haskellPackages = pkgs.haskellPackages.override {
+            overrides = self: super: { };
+          };
 
-        packages.default = self.packages.${system}.${packageName};
-        defaultPackage = self.packages.${system}.default;
+          packageName = "myocardio";
+        in
+        {
+          packages.${packageName} =
+            haskellPackages.callCabal2nix packageName self {
+              # tango = pkgs.tango-controls-9_4;
+              # ctango = self.packages.${system}.ctango;
+            };
 
-        devShells.default = pkgs.mkShell {
-          buildInputs = with pkgs; [
-            haskellPackages.haskell-language-server # you must build it with your ghc to work
-            ghcid
-            cabal-install
-          ];
-          inputsFrom = map (__getAttr "env") (__attrValues self.packages.${system});
-        };
-        devShell = self.devShells.${system}.default;
-      });
+          packages.default = self.packages.${system}.${packageName};
+
+          # packages.ctango = pkgs.stdenv.mkDerivation {
+          #   pname = "ctango";
+          #   version = "1.0";
+
+          #   src = c_tango/.;
+
+          #   nativeBuildInputs = with pkgs; [ cmake pkg-config ];
+          #   buildInputs = with pkgs; [
+          #     tango-controls-9_4
+          #     zeromq
+          #     cppzmq
+          #     omniorb_4_2
+          #     libjpeg_turbo
+          #     libsodium
+          #   ];
+          # };
+
+          defaultPackage = self.packages.${system}.default;
+
+          devShells.default =
+            pkgs.mkShell {
+              buildInputs = with pkgs; [
+                haskellPackages.haskell-language-server # you must build it with your ghc to work
+                cabal-install
+                haskellPackages.hlint
+                haskellPackages.apply-refact
+
+              ];
+              inputsFrom = [ self.packages.${system}.myocardio.env ];
+            };
+          devShell = self.devShells.${system}.default;
+        });
 }

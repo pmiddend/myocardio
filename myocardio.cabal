@@ -1,12 +1,12 @@
 cabal-version:  2.2
 name:           myocardio
-version:        2.0.0
+version:        3.0.0
 description:    Please see the README on GitHub at <https://github.com/pmiddend/myocardio#readme>
 homepage:       https://github.com/pmiddend/myocardio#readme
 bug-reports:    https://github.com/pmiddend/myocardio/issues
 author:         Philipp Middendorf
 maintainer:     pmidden@mailbox.org
-copyright:      2022 Philipp Middendorf
+copyright:      2024 Philipp Middendorf
 license:        GPL-3.0-or-later
 license-file:   LICENSE
 build-type:     Simple
@@ -19,85 +19,27 @@ source-repository head
 
 common shared-properties
   default-language: Haskell2010
+  extensions: BlockArguments
+            , DeriveGeneric
+            , DuplicateRecordFields
+            , OverloadedRecordDot
+            , OverloadedStrings
+            , NoImplicitPrelude
   
-library
-  import: shared-properties
-  ghc-options: -Weverything -Wno-missing-safe-haskell-mode -Wno-unsafe -Wno-missing-deriving-strategies -Wno-all-missed-specialisations -Wno-monomorphism-restriction -Wno-safe -Wno-missing-local-signatures -Wno-prepositive-qualified-module
-  exposed-modules:
-      Myocardio.Endo
-      Myocardio.Exercise
-      Myocardio.ExerciseData
-      Myocardio.FormatTime
-      Myocardio.Muscle
-      Myocardio.MuscleWithTrainingState
-      Myocardio.Ranking
-      Myocardio.TrainingState
-      Myocardio.Util
-  hs-source-dirs:
-      src
-  build-depends:
-      aeson <= 2.0.3.0
-    , base >=4.7 && <5
-    , containers <= 0.6.6
-    , microlens <= 0.4.12.0
-    , microlens-platform <= 0.4.2.1
-    , text <= 1.2.5.0
-    , time <= 1.12.2
-
 executable myocardio-exe
   import: shared-properties
   main-is: Main.hs
-  ghc-options: -Weverything -Wno-missing-safe-haskell-mode -Wno-unsafe -Wno-missing-deriving-strategies -Wno-all-missed-specialisations -Wno-monomorphism-restriction -Wno-safe -Wno-missing-local-signatures -Wno-prepositive-qualified-module -threaded -rtsopts -with-rtsopts=-N
-  other-modules:
-      MyocardioApp.BrickUtil
-      MyocardioApp.ConfigJson
-      MyocardioApp.GlobalData
-      MyocardioApp.Human
-      MyocardioApp.Markup
-      MyocardioApp.Model
-      MyocardioApp.Page
-      MyocardioApp.Pages.MainPage
-      MyocardioApp.Pages.MusclesPage
-      MyocardioApp.ResourceName
-      MyocardioApp.Table
-      MyocardioApp.TextMarkup
-      MyocardioApp.UpdateResult
+  ghc-options: -Weverything -Wno-missing-safe-haskell-mode -Wno-unsafe -Wno-missing-deriving-strategies -Wno-all-missed-specialisations -Wno-monomorphism-restriction -Wno-safe -Wno-missing-local-signatures -Wno-prepositive-qualified-module -threaded -rtsopts -with-rtsopts=-N -Wno-missing-kind-signatures -Wno-missed-specializations
+  other-modules: MyocardioApp.Database
+               , MyocardioApp.Htmx
   hs-source-dirs:
       app
   build-depends:
-      aeson <= 2.0.3.0
-    , aeson-pretty <= 0.8.9
-    , base >=4.7 && <5
-    -- the version currently in NixOS (unfortunately)
-    , brick <= 0.68.1
-    , bytestring <= 0.11.3.1
-    , containers <= 0.6.6
-    , directory <= 1.3.7.1
-    , haskeline <= 0.8.2
-    , http-client <= 0.7.11
-    , http-client-tls <= 0.3.6.1
-    , microlens <= 0.4.12.0
-    , microlens-platform <= 0.4.2.1
-    , myocardio
-    , text <= 1.2.5.0
-    , text-zipper <= 0.11
-    , time <= 1.12.2
-    , vty <= 5.33
-    , xdg-basedir <= 0.2.2
-
-test-suite myocardio-test
-  import: shared-properties
-  ghc-options: -Weverything -Wno-missing-safe-haskell-mode -Wno-unsafe -Wno-missing-deriving-strategies -Wno-all-missed-specialisations -Wno-monomorphism-restriction -Wno-safe -Wno-missing-local-signatures -Wno-prepositive-qualified-module -threaded -rtsopts -with-rtsopts=-N
-  type: exitcode-stdio-1.0
-  main-is: Spec.hs
-  other-modules:
-      RankingSpec
-  hs-source-dirs:
-      test-suite
-  build-depends:
-      QuickCheck <= 2.14.2
-    , base >=4.7 && <5
-    , hspec <= 2.8.5
-    , myocardio
-    , quickcheck-instances <= 0.3.27
-    , time <= 1.12.2
+      base >=4.7 && <5
+    , aeson
+    , text
+    , time
+    , scotty
+    , safe
+    , directory
+    , lucid
