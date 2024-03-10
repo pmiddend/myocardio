@@ -1,26 +1,59 @@
+{-# LANGUAGE DeriveTraversable #-}
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE OverloadedRecordDot #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module MyocardioApp.Database where
+module MyocardioApp.Database
+  ( allMuscles,
+    Muscle (..),
+    Category,
+    allCategories,
+    Exercise (..),
+    ExerciseName (..),
+    Intensity (..),
+    intensityToText,
+    ExerciseWithIntensity (..),
+    ExerciseNameWithIntensity (..),
+    SorenessValue (..),
+    Soreness (..),
+    DatabaseF (..),
+    emptyDatabase,
+    Database,
+    exercises,
+    exercisesByName,
+    readDatabase,
+    modifyDb,
+  )
+where
 
 import Control.Monad.IO.Class (MonadIO (liftIO))
 import Data.Aeson (FromJSON, ToJSON, eitherDecodeFileStrict, encodeFile)
 import Data.Bool (not)
+import Data.Foldable (Foldable)
 import Data.Function (($))
+import Data.Functor (Functor, (<$>))
 import qualified Data.List.NonEmpty as NE
-import Data.Monoid (Monoid (mempty))
-import Data.Text (Text)
+import qualified Data.Map as Map
+import Data.Maybe (Maybe (Just, Nothing))
+import Data.Text (Text, unpack)
 import Data.Time.Clock (UTCTime)
+import Data.Traversable (Traversable (traverse))
 import GHC.Generics (Generic)
+import qualified Lucid as L
 import System.Directory (doesFileExist)
 import System.IO (FilePath)
-import Prelude (Applicative (pure), Bounded, Either (Left, Right), Enum, Eq, Ord, Read, Show, enumFromTo, error, maxBound, minBound)
+import Prelude (Applicative (pure), Bounded, Either (Left, Right), Enum, Eq, Ord, Read, Show (show), enumFromTo, error, maxBound, minBound)
 
 data Muscle
   = Quadriceps
   | Biceps
   | Triceps
+  | Calves
+  | Adductors
+  | Hamstrings
+  | HipFlexors
+  | GluteusMedius
+  | GluteusMaximus
   deriving (Show, Eq, Generic, Enum, Bounded, Ord, Read)
 
 instance FromJSON Muscle
@@ -30,28 +63,61 @@ instance ToJSON Muscle
 allMuscles :: [Muscle]
 allMuscles = enumFromTo minBound maxBound
 
-newtype Exercise = Exercise {getMuscles :: NE.NonEmpty Muscle} deriving (Show, Eq, Generic)
+data Category
+  = Strength
+  | Endurance
+  | Stretch
+  deriving (Show, Eq, Generic, Enum, Bounded, Ord, Read)
 
-instance FromJSON Exercise
+instance FromJSON Category
 
-instance ToJSON Exercise
+instance ToJSON Category
+
+allCategories :: [Category]
+allCategories = enumFromTo minBound maxBound
+
+newtype ExerciseName = ExerciseName {getName :: Text} deriving (Eq, Generic, Ord)
+
+instance Show ExerciseName where
+  show (ExerciseName n) = unpack n
+
+instance FromJSON ExerciseName
+
+instance ToJSON ExerciseName
+
+data Exercise = Exercise
+  { muscles :: !(NE.NonEmpty Muscle),
+    category :: !Category,
+    description :: !(L.Html ()),
+    name :: !ExerciseName
+  }
 
 newtype Intensity = Intensity {getIntensity :: Text} deriving (Show, Eq, Generic)
+
+intensityToText :: Intensity -> Text
+intensityToText = getIntensity
 
 instance FromJSON Intensity
 
 instance ToJSON Intensity
 
-data ExerciseWithIntensity = ExerciseWithIntensity
-  { exercise :: !Exercise,
+data ExerciseWithIntensity a = ExerciseWithIntensity
+  { exercise :: !a,
     intensity :: !Intensity,
     time :: !UTCTime
   }
+  deriving (Show, Eq, Generic, Functor, Foldable, Traversable)
+
+instance (FromJSON a) => FromJSON (ExerciseWithIntensity a)
+
+instance (ToJSON a) => ToJSON (ExerciseWithIntensity a)
+
+newtype ExerciseNameWithIntensity = ExerciseNameWithIntensity (ExerciseWithIntensity ExerciseName)
   deriving (Show, Eq, Generic)
 
-instance FromJSON ExerciseWithIntensity
+instance FromJSON ExerciseNameWithIntensity
 
-instance ToJSON ExerciseWithIntensity
+instance ToJSON ExerciseNameWithIntensity
 
 data SorenessValue
   = VerySore
@@ -74,22 +140,54 @@ instance FromJSON Soreness
 
 instance ToJSON Soreness
 
-data Database = Database
-  { currentTraining :: ![ExerciseWithIntensity],
-    pastExercises :: ![ExerciseWithIntensity],
+data DatabaseF a = DatabaseF
+  { currentTraining :: ![a],
+    pastExercises :: ![a],
     sorenessHistory :: ![Soreness]
   }
-  deriving (Show, Eq, Generic)
+  deriving (Show, Eq, Generic, Functor, Foldable, Traversable)
 
-emptyDatabase :: Database
-emptyDatabase = Database mempty mempty mempty
+emptyDatabase :: DatabaseF a
+emptyDatabase = DatabaseF {currentTraining = [], pastExercises = [], sorenessHistory = []}
 
-instance FromJSON Database
+instance (FromJSON a) => FromJSON (DatabaseF a)
 
-instance ToJSON Database
+instance (ToJSON a) => ToJSON (DatabaseF a)
+
+exercises :: [Exercise]
+exercises =
+  [ Exercise
+      { name = ExerciseName "Running",
+        -- source: https://www.onepeloton.com/blog/what-muscles-does-running-work/
+        muscles = Quadriceps NE.:| [Calves, Hamstrings, HipFlexors, GluteusMaximus, GluteusMedius],
+        category = Endurance,
+        description = L.a_ [L.href_ "https://www.youtube.com/watch?v=wBtOd6_L_3M"] "4 Unexpected Reasons People Hate Running"
+      },
+    Exercise
+      { name = ExerciseName "Lunge",
+        muscles = GluteusMaximus NE.:| [Hamstrings, Quadriceps, Calves, Adductors],
+        category = Strength,
+        description = do
+          L.h2_ "Resources"
+          L.ul_ do
+            L.li_ (L.a_ [L.href_ "https://www.nsca.com/contentassets/24dd7222ed1b4caeb8a0a46b81bd11f3/ptq-4.4.9-the-undervalued-lunge.pdf"] "Has some nice tips for correct execution")
+            L.li_ (L.a_ [L.href_ "https://weighttraining.guide/exercises/lunge/"] "This mentions the muscles involved")
+      }
+  ]
+
+exercisesByName :: Map.Map ExerciseName Exercise
+exercisesByName = Map.fromList ((\e -> (e.name, e)) <$> exercises)
+
+newtype DatabaseWithExerciseNames = DatabaseWithExerciseNames (DatabaseF ExerciseNameWithIntensity) deriving (Generic)
+
+instance FromJSON DatabaseWithExerciseNames
+
+instance ToJSON DatabaseWithExerciseNames
 
 dbFile :: FilePath
 dbFile = "myocardio.json"
+
+type Database = DatabaseF (ExerciseWithIntensity Exercise)
 
 readDatabase :: (MonadIO m) => m Database
 readDatabase = do
@@ -100,10 +198,20 @@ readDatabase = do
       result <- liftIO $ eitherDecodeFileStrict dbFile
       case result of
         Left _ -> error "shit"
-        Right v -> pure v
+        Right (DatabaseWithExerciseNames v) -> do
+          let resolveExercise :: ExerciseWithIntensity ExerciseName -> Maybe (ExerciseWithIntensity Exercise)
+              resolveExercise = traverse (`Map.lookup` exercisesByName)
+              resolved :: Maybe (DatabaseF (ExerciseWithIntensity Exercise))
+              resolved = traverse (\(ExerciseNameWithIntensity e) -> resolveExercise e) v
+          case resolved of
+            Nothing -> error "invalid exercise name"
+            Just resolved' -> pure resolved'
 
 writeDatabase :: (MonadIO m) => Database -> m ()
-writeDatabase v = liftIO $ encodeFile dbFile v
+writeDatabase v =
+  let encodeDb :: DatabaseF (ExerciseWithIntensity Exercise) -> DatabaseWithExerciseNames
+      encodeDb db = DatabaseWithExerciseNames $ (\exWithIn -> ExerciseNameWithIntensity ((.name) <$> exWithIn)) <$> db
+   in liftIO $ encodeFile dbFile (encodeDb v)
 
 modifyDb :: (MonadIO m) => (Database -> Database) -> m Database
 modifyDb f = do

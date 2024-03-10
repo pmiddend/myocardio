@@ -1,4 +1,4 @@
-module MyocardioApp.Htmx (useHtmx, hxPost_, hxTarget_) where
+module MyocardioApp.Htmx (useHtmx, hxPost_, hxTarget_, hxGet_) where
 
 import Control.Monad (Monad)
 import Data.Text (Text)
@@ -17,6 +17,9 @@ useHtmx = script_ [src_ htmxSrc] ("" :: Html ())
 
 hxPost_ :: Text -> Attribute
 hxPost_ = makeAttribute "data-hx-post"
+
+hxGet_ :: Text -> Attribute
+hxGet_ = makeAttribute "data-hx-get"
 
 -- | <https://htmx.org/attributes/hx-target/>
 hxTarget_ :: Text -> Attribute

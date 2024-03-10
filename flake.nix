@@ -58,6 +58,7 @@
               buildInputs = with pkgs; [
                 haskellPackages.haskell-language-server # you must build it with your ghc to work
                 cabal-install
+                ghcid
                 haskellPackages.hlint
                 haskellPackages.apply-refact
 

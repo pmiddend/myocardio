@@ -40,6 +40,7 @@ executable myocardio-exe
     , text
     , time
     , scotty
+    , containers
     , safe
     , directory
     , lucid
