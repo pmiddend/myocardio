@@ -48,6 +48,7 @@ data Muscle
   = Neck
   | Biceps
   | Triceps
+  | Core
   | Adductors
   | GluteusMedius
   | GluteusMaximus
@@ -55,6 +56,7 @@ data Muscle
   | Quadriceps
   | Hamstrings
   | Calves
+  | Peroneals
   deriving (Show, Eq, Generic, Enum, Bounded, Ord, Read)
 
 instance FromJSON Muscle
@@ -68,6 +70,7 @@ data Category
   = Strength
   | Endurance
   | Stretch
+  | Mobility
   deriving (Show, Eq, Generic, Enum, Bounded, Ord, Read)
 
 instance FromJSON Category

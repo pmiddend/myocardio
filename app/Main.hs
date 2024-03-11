@@ -21,6 +21,7 @@ import Data.Maybe (Maybe (Just, Nothing), isJust, isNothing, mapMaybe, maybe)
 import Data.Monoid (Monoid (mempty))
 import Data.Ord (Ord ((<), (>)), comparing)
 import Data.Semigroup (Semigroup ((<>)))
+import qualified Data.Set as Set
 import Data.String (IsString)
 import Data.Text (Text, pack, toLower)
 import qualified Data.Text.Lazy as TL
@@ -28,7 +29,7 @@ import Data.Time.Clock (UTCTime (utctDay, utctDayTime), diffUTCTime, getCurrentT
 import Lucid (renderText)
 import qualified Lucid as L
 import MyocardioApp.Database
-  ( Category (Endurance, Strength, Stretch),
+  ( Category (Endurance, Mobility, Strength, Stretch),
     Database,
     DatabaseF (currentTraining, pastExercises, sorenessHistory),
     Exercise (Exercise, category, description, muscles, name),
@@ -216,6 +217,12 @@ currentWorkoutHtml database =
         L.h1_ do
           icon "joystick"
           L.span_ "Current Workout"
+        let musclesInvolved = currentExercises >>= (NE.toList . (.muscles) . (.exercise))
+            musclesMissing = Set.toList $ Set.fromList allMuscles `Set.difference` Set.fromList musclesInvolved
+        L.div_ [L.class_ "hstack gap-1 mb-3"] do
+          forM_ musclesInvolved \muscle' -> L.span_ [L.class_ "badge text-bg-info"] (L.toHtml $ packShow muscle')
+        L.div_ [L.class_ "hstack gap-1 mb-3"] do
+          forM_ musclesMissing \muscle' -> L.span_ [L.class_ "badge text-bg-warning"] (L.toHtml $ packShow muscle')
         L.ol_ $ forM_ currentExercises \exWithIn -> do
           L.li_ do
             L.span_ do
@@ -460,7 +467,14 @@ exercisesHtml db = do
     L.div_ [L.class_ "alert alert-light"] do
       L.toHtmlRaw $ commonmarkToHtml [] [] exercise'.description
 
-data CurrentPage = PageSoreness | PageStrength | PageStretch | PageEndurance | PageExercises deriving (Eq)
+data CurrentPage
+  = PageSoreness
+  | PageStrength
+  | PageStretch
+  | PageEndurance
+  | PageMobility
+  | PageExercises
+  deriving (Eq)
 
 headerHtml :: CurrentPage -> L.Html ()
 headerHtml currentPage =
@@ -469,6 +483,7 @@ headerHtml currentPage =
           (PageStrength, "training/strength", "hammer", "Strength"),
           (PageEndurance, "training/endurance", "person-walking", "Endurance"),
           (PageStretch, "training/stretch", "rulers", "Stretch"),
+          (PageMobility, "training/mobility", "airplane", "Mobility"),
           (PageExercises, "exercises", "box2-heart", "Exercises")
         ]
       makeItem :: (CurrentPage, Text, Text, Text) -> L.Html ()
@@ -642,6 +657,14 @@ main = scotty 3000 do
       currentWorkoutHtml db
       L.hr_ [L.class_ "mb-3"]
       trainingHtml currentTime db Stretch
+
+  get "/training/mobility" do
+    db <- readDatabase
+    currentTime <- liftIO getCurrentTime
+    html $ renderText $ htmlSkeleton PageMobility $ do
+      currentWorkoutHtml db
+      L.hr_ [L.class_ "mb-3"]
+      trainingHtml currentTime db Mobility
 
   get "/training/endurance" do
     db <- readDatabase
