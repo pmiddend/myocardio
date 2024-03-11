@@ -31,9 +31,11 @@ import Data.Bool (not)
 import Data.Foldable (Foldable)
 import Data.Function (($))
 import Data.Functor (Functor, (<$>))
+import Data.List (sortBy)
 import qualified Data.List.NonEmpty as NE
 import qualified Data.Map as Map
 import Data.Maybe (Maybe (Just, Nothing))
+import Data.Ord (comparing)
 import Data.Text (Text, unpack)
 import Data.Time.Clock (UTCTime)
 import Data.Traversable (Traversable (traverse))
@@ -210,7 +212,13 @@ readDatabase = do
               resolved = traverse (\(ExerciseNameWithIntensity e) -> resolveExercise e) v
           case resolved of
             Nothing -> error "invalid exercise name"
-            Just resolved' -> pure resolved'
+            Just resolved' ->
+              pure
+                ( resolved'
+                    { sorenessHistory = sortBy (comparing (.time)) resolved'.sorenessHistory,
+                      pastExercises = sortBy (comparing (.time)) resolved'.pastExercises
+                    }
+                )
 
 writeDatabase :: (MonadIO m) => Database -> m ()
 writeDatabase v =
