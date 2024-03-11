@@ -6,21 +6,22 @@
 
 module Main (main) where
 
+import CMarkGFM (commonmarkToHtml)
 import Control.Monad.IO.Class (MonadIO (liftIO))
 import Data.Bool (Bool)
 import Data.Eq (Eq ((/=)), (==))
-import Data.Foldable (Foldable (elem), forM_, mapM_)
+import Data.Foldable (Foldable (elem), find, forM_, mapM_)
 import Data.Function (($), (.))
 import Data.Int (Int)
 import Data.List (filter)
 import qualified Data.List.NonEmpty as NE
-import qualified Data.Map as Map
 import Data.Maybe (Maybe (Just, Nothing), mapMaybe, maybe)
 import Data.Monoid (Monoid (mempty))
 import Data.Ord (comparing)
 import Data.Semigroup (Semigroup ((<>)))
 import Data.String (IsString)
 import Data.Text (Text, pack)
+import Data.Text.IO (readFile)
 import qualified Data.Text.Lazy as TL
 import Data.Time.Clock (UTCTime, diffUTCTime, getCurrentTime, nominalDay)
 import Lucid (renderText)
@@ -32,21 +33,21 @@ import MyocardioApp.Database
     ExerciseName (ExerciseName),
     ExerciseWithIntensity (ExerciseWithIntensity, exercise, intensity, time),
     Intensity (Intensity),
-    Muscle (Quadriceps),
+    Muscle,
     Soreness (Soreness, muscle, soreness, time),
     SorenessValue (LittleSore, NotSore, VerySore),
     allMuscles,
     exercises,
-    exercisesByName,
     intensityToText,
     modifyDb,
     readDatabase,
   )
 import qualified MyocardioApp.Htmx as LX
+import Network.HTTP.Types.Status (status400)
 import Safe (maximumByMay)
 import System.IO (IO)
-import Web.Scotty (Parsable (parseParam), get, html, param, post, readEither, scotty)
-import Prelude (Either (Left, Right), Fractional ((/)), RealFrac (round), Show (show), putStrLn)
+import Web.Scotty (Parsable (parseParam), finish, get, html, param, post, readEither, scotty, status)
+import Prelude (Either (Right), Fractional ((/)), RealFrac (round), Show (show))
 
 instance Parsable Muscle where
   parseParam = readEither
@@ -59,12 +60,6 @@ instance Parsable Intensity where
 
 instance Parsable ExerciseName where
   parseParam = Right . ExerciseName . TL.toStrict
-
-instance Parsable Exercise where
-  parseParam exerciseName =
-    case Map.lookup (ExerciseName (TL.toStrict exerciseName)) exercisesByName of
-      Nothing -> Left ("cannot find exercise with name \"" <> exerciseName <> "\" in list of exercises")
-      Just e -> Right e
 
 packShow :: (Show a) => a -> Text
 packShow = pack . show
@@ -216,7 +211,7 @@ trainingHtml currentTime database = do
                     <> packShow exWithIntensity.exercise.name
               )
       exercisesByCategory :: Muscle -> [NE.NonEmpty Exercise]
-      exercisesByCategory muscle' = NE.groupAllWith (.category) $ filter (\e -> muscle' `elem` e.muscles) exercises
+      exercisesByCategory muscle' = NE.groupAllWith (.category) $ filter (\e -> muscle' `elem` e.muscles) database.exercises
       outputExercise :: Exercise -> L.Html ()
       outputExercise e = do
         let pastExercise = maximumByMay (comparing (.time)) $ filter (\pe -> pe.exercise.name == e.name) database.pastExercises
@@ -256,14 +251,14 @@ trainingHtml currentTime database = do
 
   mapM_ muscleToTrainingHtml allMuscles
 
-exercisesHtml :: L.Html ()
-exercisesHtml = do
+exercisesHtml :: Database -> L.Html ()
+exercisesHtml db = do
   L.h1_ do
     L.i_ [L.class_ "bi-box2-heart me-2"] mempty
     L.span_ "Exercise Descriptions"
-  forM_ exercises \exercise' -> do
+  forM_ db.exercises \exercise' -> do
     L.h4_ [L.id_ ("description-" <> packShow exercise'.name)] (L.toHtml (packShow exercise'.name))
-    exercise'.description
+    L.toHtmlRaw $ commonmarkToHtml [] [] exercise'.description
 
 main :: IO ()
 main = scotty 3000 do
@@ -309,23 +304,29 @@ main = scotty 3000 do
 
     html $ renderText $ sorenessOutput db
   post urlAddToWorkout do
-    exercise' :: Exercise <- param addToWorkoutExerciseName
+    exerciseName :: ExerciseName <- param addToWorkoutExerciseName
     intensity' :: Intensity <- param addToWorkoutIntensity
     currentTime <- liftIO getCurrentTime
-    db <-
-      modifyDb
-        ( \db ->
-            db
-              { currentTraining =
-                  ExerciseWithIntensity
-                    { exercise = exercise',
-                      intensity = intensity',
-                      time = currentTime
-                    }
-                    : db.currentTraining
-              }
-        )
-    html $ renderText $ currentWorkoutHtml db
+    readDb <- readDatabase
+    case find (\e -> e.name == exerciseName) readDb.exercises of
+      Nothing -> do
+        status status400
+        finish
+      Just exercise' -> do
+        db' <-
+          modifyDb
+            ( \db ->
+                db
+                  { currentTraining =
+                      ExerciseWithIntensity
+                        { exercise = exercise',
+                          intensity = intensity',
+                          time = currentTime
+                        }
+                        : db.currentTraining
+                  }
+            )
+        html $ renderText $ currentWorkoutHtml db'
 
   post "/reset-current-workout" do
     exercise' :: ExerciseName <- param "exercise-name"
@@ -349,4 +350,4 @@ main = scotty 3000 do
       L.hr_ [L.class_ "mb-3"]
       trainingHtml currentTime db
       L.hr_ [L.class_ "mb-3"]
-      exercisesHtml
+      exercisesHtml db

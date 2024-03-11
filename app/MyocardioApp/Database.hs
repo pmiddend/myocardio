@@ -19,7 +19,6 @@ module MyocardioApp.Database
     DatabaseF (..),
     emptyDatabase,
     Database,
-    exercises,
     exercisesByName,
     readDatabase,
     modifyDb,
@@ -39,7 +38,6 @@ import Data.Text (Text, unpack)
 import Data.Time.Clock (UTCTime)
 import Data.Traversable (Traversable (traverse))
 import GHC.Generics (Generic)
-import qualified Lucid as L
 import System.Directory (doesFileExist)
 import System.IO (FilePath)
 import Prelude (Applicative (pure), Bounded, Either (Left, Right), Enum, Eq, Ord, Read, Show (show), enumFromTo, error, maxBound, minBound)
@@ -88,9 +86,14 @@ instance ToJSON ExerciseName
 data Exercise = Exercise
   { muscles :: !(NE.NonEmpty Muscle),
     category :: !Category,
-    description :: !(L.Html ()),
+    description :: !Text,
     name :: !ExerciseName
   }
+  deriving (Show, Eq, Generic)
+
+instance FromJSON Exercise
+
+instance ToJSON Exercise
 
 newtype Intensity = Intensity {getIntensity :: Text} deriving (Show, Eq, Generic)
 
@@ -143,40 +146,41 @@ instance ToJSON Soreness
 data DatabaseF a = DatabaseF
   { currentTraining :: ![a],
     pastExercises :: ![a],
-    sorenessHistory :: ![Soreness]
+    sorenessHistory :: ![Soreness],
+    exercises :: ![Exercise]
   }
   deriving (Show, Eq, Generic, Functor, Foldable, Traversable)
 
 emptyDatabase :: DatabaseF a
-emptyDatabase = DatabaseF {currentTraining = [], pastExercises = [], sorenessHistory = []}
+emptyDatabase = DatabaseF {currentTraining = [], pastExercises = [], sorenessHistory = [], exercises = []}
 
 instance (FromJSON a) => FromJSON (DatabaseF a)
 
 instance (ToJSON a) => ToJSON (DatabaseF a)
 
-exercises :: [Exercise]
-exercises =
-  [ Exercise
-      { name = ExerciseName "Running",
-        -- source: https://www.onepeloton.com/blog/what-muscles-does-running-work/
-        muscles = Quadriceps NE.:| [Calves, Hamstrings, HipFlexors, GluteusMaximus, GluteusMedius],
-        category = Endurance,
-        description = L.a_ [L.href_ "https://www.youtube.com/watch?v=wBtOd6_L_3M"] "4 Unexpected Reasons People Hate Running"
-      },
-    Exercise
-      { name = ExerciseName "Lunge",
-        muscles = GluteusMaximus NE.:| [Hamstrings, Quadriceps, Calves, Adductors],
-        category = Strength,
-        description = do
-          L.h2_ "Resources"
-          L.ul_ do
-            L.li_ (L.a_ [L.href_ "https://www.nsca.com/contentassets/24dd7222ed1b4caeb8a0a46b81bd11f3/ptq-4.4.9-the-undervalued-lunge.pdf"] "Has some nice tips for correct execution")
-            L.li_ (L.a_ [L.href_ "https://weighttraining.guide/exercises/lunge/"] "This mentions the muscles involved")
-      }
-  ]
+-- exercises :: [Exercise]
+-- exercises =
+--   [ Exercise
+--       { name = ExerciseName "Running",
+--         -- source: https://www.onepeloton.com/blog/what-muscles-does-running-work/
+--         muscles = Quadriceps NE.:| [Calves, Hamstrings, HipFlexors, GluteusMaximus, GluteusMedius],
+--         category = Endurance,
+--         description = L.a_ [L.href_ "https://www.youtube.com/watch?v=wBtOd6_L_3M"] "4 Unexpected Reasons People Hate Running"
+--       },
+--     Exercise
+--       { name = ExerciseName "Lunge",
+--         muscles = GluteusMaximus NE.:| [Hamstrings, Quadriceps, Calves, Adductors],
+--         category = Strength,
+--         description = do
+--           L.h2_ "Resources"
+--           L.ul_ do
+--             L.li_ (L.a_ [L.href_ "https://www.nsca.com/contentassets/24dd7222ed1b4caeb8a0a46b81bd11f3/ptq-4.4.9-the-undervalued-lunge.pdf"] "Has some nice tips for correct execution")
+--             L.li_ (L.a_ [L.href_ "https://weighttraining.guide/exercises/lunge/"] "This mentions the muscles involved")
+--       }
+--   ]
 
-exercisesByName :: Map.Map ExerciseName Exercise
-exercisesByName = Map.fromList ((\e -> (e.name, e)) <$> exercises)
+exercisesByName :: DatabaseF a -> Map.Map ExerciseName Exercise
+exercisesByName d = Map.fromList ((\e -> (e.name, e)) <$> d.exercises)
 
 newtype DatabaseWithExerciseNames = DatabaseWithExerciseNames (DatabaseF ExerciseNameWithIntensity) deriving (Generic)
 
@@ -197,10 +201,10 @@ readDatabase = do
     else do
       result <- liftIO $ eitherDecodeFileStrict dbFile
       case result of
-        Left _ -> error "shit"
+        Left _ -> error "error decoding DB JSON"
         Right (DatabaseWithExerciseNames v) -> do
           let resolveExercise :: ExerciseWithIntensity ExerciseName -> Maybe (ExerciseWithIntensity Exercise)
-              resolveExercise = traverse (`Map.lookup` exercisesByName)
+              resolveExercise = traverse (`Map.lookup` exercisesByName v)
               resolved :: Maybe (DatabaseF (ExerciseWithIntensity Exercise))
               resolved = traverse (\(ExerciseNameWithIntensity e) -> resolveExercise e) v
           case resolved of

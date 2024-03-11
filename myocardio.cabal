@@ -43,4 +43,6 @@ executable myocardio-exe
     , containers
     , safe
     , directory
-    , lucid
+    , lucid2
+    , cmark-gfm
+    , http-types
