@@ -6,7 +6,7 @@
 module MyocardioApp.Database
   ( allMuscles,
     Muscle (..),
-    Category,
+    Category (..),
     allCategories,
     Exercise (..),
     ExerciseName (..),
@@ -43,15 +43,16 @@ import System.IO (FilePath)
 import Prelude (Applicative (pure), Bounded, Either (Left, Right), Enum, Eq, Ord, Read, Show (show), enumFromTo, error, maxBound, minBound)
 
 data Muscle
-  = Quadriceps
+  = Neck
   | Biceps
   | Triceps
-  | Calves
   | Adductors
-  | Hamstrings
-  | HipFlexors
   | GluteusMedius
   | GluteusMaximus
+  | HipFlexors
+  | Quadriceps
+  | Hamstrings
+  | Calves
   deriving (Show, Eq, Generic, Enum, Bounded, Ord, Read)
 
 instance FromJSON Muscle
