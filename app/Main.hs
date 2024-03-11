@@ -152,8 +152,8 @@ newSorenessHowSore = "how-sore"
 anchorSorenessOutput :: (IsString a) => a
 anchorSorenessOutput = "soreness-output"
 
-anchorCurrentWorkout :: (IsString a) => a
-anchorCurrentWorkout = "current-workout"
+idCurrentWorkout :: HtmlId
+idCurrentWorkout = HtmlId "current-workout"
 
 icon :: Text -> L.Html ()
 icon name' = L.i_ [L.class_ ("bi-" <> name' <> " me-2")] mempty
@@ -195,9 +195,12 @@ dayDiffText currentTime before =
         1 -> "yesterday"
         n -> packShow n <> " days ago"
 
+urlCommitWorkout :: (IsString a) => a
+urlCommitWorkout = "/partials/commit-workout"
+
 currentWorkoutHtml :: Database -> L.Html ()
 currentWorkoutHtml database =
-  L.div_ [L.id_ anchorCurrentWorkout] do
+  L.div_ [makeId idCurrentWorkout] do
     case database.currentTraining of
       [] -> mempty
       currentExercises -> do
@@ -213,9 +216,13 @@ currentWorkoutHtml database =
             L.a_
               [ LX.hxPost_ ("/reset-current-workout?exercise-name=" <> packShow exWithIn.exercise.name),
                 L.href_ "#",
-                LX.hxTarget_ ("#" <> anchorCurrentWorkout)
+                makeTarget idCurrentWorkout
               ]
               "Reset"
+        L.form_ do
+          L.button_ [L.type_ "submit", L.class_ "btn btn-primary", LX.hxPost_ urlCommitWorkout, makeTarget idCurrentWorkout] do
+            icon "send"
+            L.span_ "Commit"
 
 trainingHtml :: UTCTime -> Database -> L.Html ()
 trainingHtml currentTime database = do
@@ -256,7 +263,7 @@ trainingHtml currentTime database = do
               [ L.type_ "button",
                 LX.hxPost_ urlAddToWorkout,
                 L.class_ "btn btn-sm btn-primary",
-                LX.hxTarget_ ("#" <> anchorCurrentWorkout)
+                makeTarget idCurrentWorkout
               ]
               do
                 icon "journal-plus"
@@ -481,6 +488,11 @@ main = scotty 3000 do
                   }
             )
         html $ renderText $ currentWorkoutHtml db'
+
+  post urlCommitWorkout do
+    newDb <- modifyDb \db ->
+      db {currentTraining = [], pastExercises = db.currentTraining <> db.pastExercises}
+    html $ renderText $ currentWorkoutHtml newDb
 
   post "/reset-current-workout" do
     exercise' :: ExerciseName <- param "exercise-name"
