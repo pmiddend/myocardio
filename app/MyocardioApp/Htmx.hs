@@ -1,6 +1,8 @@
-module MyocardioApp.Htmx (useHtmx, hxPost_, hxTarget_, hxGet_) where
+module MyocardioApp.Htmx (useHtmx, hxPost_, hxTarget_, hxGet_, SwapType (..), hxSwap_) where
 
 import Control.Monad (Monad)
+import Data.Eq (Eq)
+import Data.Function ((.))
 import Data.Text (Text)
 import Lucid (Attributes, Html, HtmlT, script_, src_)
 import Lucid.Base (makeAttributes)
@@ -17,6 +19,29 @@ useHtmx = script_ [src_ htmxSrc] ("" :: Html ())
 
 hxPost_ :: Text -> Attributes
 hxPost_ = makeAttributes "data-hx-post"
+
+data SwapType
+  = SwapInnerHtml
+  | SwapOuterHtml
+  | SwapAfterBegin
+  | SwapBeforeBegin
+  | SwapBeforeEnd
+  | SwapAfterEnd
+  | SwapDelete
+  | SwapNone
+  deriving (Eq)
+
+hxSwap_ :: SwapType -> Attributes
+hxSwap_ = makeAttributes "data-hx-swap" . swapToString
+  where
+    swapToString SwapInnerHtml = "innerHTML"
+    swapToString SwapOuterHtml = "outerHTML"
+    swapToString SwapAfterBegin = "afterbegin"
+    swapToString SwapBeforeBegin = "beforebegin"
+    swapToString SwapAfterEnd = "afterend"
+    swapToString SwapBeforeEnd = "beforeend"
+    swapToString SwapDelete = "delete"
+    swapToString SwapNone = "none"
 
 hxGet_ :: Text -> Attributes
 hxGet_ = makeAttributes "data-hx-get"

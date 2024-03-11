@@ -27,7 +27,6 @@ import qualified Data.Text.Lazy as TL
 import Data.Time.Clock (UTCTime (utctDay, utctDayTime), diffUTCTime, getCurrentTime, nominalDay)
 import Lucid (renderText)
 import qualified Lucid as L
-import Lucid.Base (makeAttributes)
 import MyocardioApp.Database
   ( Category (Endurance, Strength, Stretch),
     Database,
@@ -46,6 +45,7 @@ import MyocardioApp.Database
     modifyDb,
     readDatabase,
   )
+import MyocardioApp.Htmx (SwapType (SwapOuterHtml))
 import qualified MyocardioApp.Htmx as LX
 import Network.HTTP.Types.Status (status400)
 import Safe (maximumByMay)
@@ -315,29 +315,13 @@ trainingHtml currentTime database category' = do
                 L.name_ addToWorkoutIntensity,
                 L.type_ "text"
               ]
-          let accordionId = "accordion-" <> packShow muscle' <> packShow exerciseToOutput.name
-              collapseId = "collapse-" <> packShow muscle' <> packShow exerciseToOutput.name
-          L.div_
-            [ L.class_ "accordion accordion-flush",
-              L.id_ accordionId
+          L.button_
+            [ L.class_ "btn btn-info",
+              L.type_ "button",
+              LX.hxGet_ ("/partials/exercise-description/" <> packShow exerciseToOutput.name),
+              LX.hxSwap_ SwapOuterHtml
             ]
-            do
-              L.div_ [L.class_ "accordion-item"] do
-                L.div_ [L.class_ "accordion-header"] do
-                  L.button_
-                    [ L.type_ "button",
-                      L.class_ "accordion-button",
-                      makeAttributes "data-bs-toggle" "collapse",
-                      makeAttributes "data-bs-target" ("#" <> collapseId)
-                    ]
-                    "Details"
-                L.div_
-                  [ L.id_ collapseId,
-                    L.class_ "accordion-collapse collapse",
-                    makeAttributes "data-bs-parent" ("#" <> accordionId)
-                  ]
-                  do
-                    L.div_ [L.class_ "accordion-body"] $ L.toHtmlRaw (commonmarkToHtml [] [] exerciseToOutput.description)
+            "Show details"
 
       muscleToTrainingHtml :: Muscle -> L.Html ()
       muscleToTrainingHtml muscle' = do
@@ -596,6 +580,15 @@ main = scotty 3000 do
       currentWorkoutHtml db
       L.hr_ [L.class_ "mb-3"]
       trainingHtml currentTime db Endurance
+
+  get "/partials/exercise-description/:name" do
+    exerciseName <- param "name"
+    readDb <- readDatabase
+    case find (\e -> e.name == exerciseName) readDb.exercises of
+      Nothing -> do
+        status status400
+        finish
+      Just e -> html $ renderText $ L.toHtmlRaw $ commonmarkToHtml [] [] e.description
 
   get "/" do
     db <- readDatabase
