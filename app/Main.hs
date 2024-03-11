@@ -50,8 +50,8 @@ import qualified MyocardioApp.Htmx as LX
 import Network.HTTP.Types.Status (status400)
 import Safe (maximumByMay)
 import System.IO (IO)
-import Web.Scotty (Parsable (parseParam, parseParamList), finish, get, html, param, post, readEither, scotty, status)
-import Prelude (Either (Left, Right), Enum (succ), Fractional ((/)), RealFrac (round), Show (show))
+import Web.Scotty (Parsable (parseParam, parseParamList), finish, get, html, param, params, post, readEither, scotty, status)
+import Prelude (Either (Left, Right), Enum (succ), Fractional ((/)), RealFrac (round), Show (show), Traversable (traverse))
 
 instance (Parsable a) => Parsable (NE.NonEmpty a) where
   parseParam v =
@@ -104,7 +104,9 @@ htmlSkeleton page content = do
       headerHtml page
       L.div_ [L.class_ "container", L.id_ idTopLevelContainer] do
         content
-      L.script_ [L.src_ "https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"] ("" :: Text)
+
+-- Not sure if we need the bootstrap JS, and it must save some bandwidth
+-- L.script_ [L.src_ "https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"] ("" :: Text)
 
 sorenessValueToEmoji :: SorenessValue -> Text
 sorenessValueToEmoji VerySore = "😭"
@@ -161,6 +163,9 @@ idCurrentWorkout = HtmlId "current-workout"
 
 icon :: Text -> L.Html ()
 icon name' = L.i_ [L.class_ ("bi-" <> name' <> " me-2")] mempty
+
+icon' :: Text -> L.Html ()
+icon' name' = L.i_ [L.class_ ("bi-" <> name')] mempty
 
 sorenessInputAndOutput :: Database -> L.Html ()
 sorenessInputAndOutput database = do
@@ -354,11 +359,17 @@ exerciseFormDescriptionParam = "description"
 idExerciseForm :: HtmlId
 idExerciseForm = HtmlId "new-exercise-form"
 
-newExerciseFormHtml :: L.Html ()
-newExerciseFormHtml = do
+exerciseFormHtml :: ExerciseName -> Category -> [Muscle] -> Text -> L.Html ()
+exerciseFormHtml editName editCategory editMuscles description' =
   L.form_ do
     L.div_ [L.class_ "form-floating mb-3"] do
-      L.input_ [L.class_ "form-control", L.id_ "exercise-name", L.type_ "text", L.name_ exerciseFormNameParam]
+      L.input_
+        [ L.class_ "form-control",
+          L.id_ "exercise-name",
+          L.type_ "text",
+          L.name_ exerciseFormNameParam,
+          L.value_ (packShow editName)
+        ]
       L.label_ [L.for_ "exercise-name"] "Name"
 
     L.h5_ "Category"
@@ -368,7 +379,7 @@ newExerciseFormHtml = do
           L.id_ ("category-" <> packShow category'),
           L.type_ "radio",
           L.name_ exerciseFormCategoryParam,
-          if category' == Strength then L.checked_ else mempty,
+          if category' == editCategory then L.checked_ else mempty,
           L.value_ (packShow category')
         ]
       L.label_
@@ -383,14 +394,20 @@ newExerciseFormHtml = do
           L.id_ ("muscle-" <> packShow muscle'),
           L.type_ "checkbox",
           L.name_ exerciseFormMusclesParam,
-          L.value_ (packShow muscle')
+          L.value_ (packShow muscle'),
+          if muscle' `elem` editMuscles then L.checked_ else mempty
         ]
       L.label_
         [L.for_ ("muscle-" <> packShow muscle'), L.class_ "btn btn-outline-secondary me-2"]
         $ L.toHtml
         $ packShow muscle'
 
-    L.textarea_ [L.class_ "form-control mb-3", L.placeholder_ "Description", L.name_ exerciseFormDescriptionParam] mempty
+    L.textarea_
+      [ L.class_ "form-control mb-3",
+        L.placeholder_ "Description",
+        L.name_ exerciseFormDescriptionParam
+      ]
+      (L.toHtml description')
 
     L.div_ [L.class_ "hstack gap-3"] do
       L.button_
@@ -424,12 +441,24 @@ exercisesHtml :: Database -> L.Html ()
 exercisesHtml db = do
   L.div_ [makeId idExerciseForm, L.class_ "mb-3"] newExerciseButtonHtml
   L.hr_ []
-  L.h1_ do
+  L.h2_ do
     icon "box2-heart"
     L.span_ "Exercise Descriptions"
   forM_ db.exercises \exercise' -> do
-    L.h4_ [L.id_ ("description-" <> packShow exercise'.name)] (L.toHtml (packShow exercise'.name))
-    L.toHtmlRaw $ commonmarkToHtml [] [] exercise'.description
+    L.h3_ [L.id_ ("description-" <> packShow exercise'.name)] do
+      L.button_
+        [ L.class_ "btn btn-sm btn-secondary me-2",
+          LX.hxGet_
+            ("/partial/edit-exercise/" <> packShow exercise'.name),
+          makeTarget idExerciseForm
+        ]
+        (icon' "pencil-square")
+      L.toHtml (packShow exercise'.name)
+    L.div_ [L.class_ "hstack gap-1 mb-3"] do
+      L.span_ [L.class_ "badge text-bg-dark"] (L.toHtml $ packShow exercise'.category)
+      forM_ exercise'.muscles \muscle' -> L.span_ [L.class_ "badge text-bg-info"] (L.toHtml $ packShow muscle')
+    L.div_ [L.class_ "alert alert-light"] do
+      L.toHtmlRaw $ commonmarkToHtml [] [] exercise'.description
 
 data CurrentPage = PageSoreness | PageStrength | PageStretch | PageEndurance | PageExercises deriving (Eq)
 
@@ -500,17 +529,49 @@ main = scotty 3000 do
 
     html $ renderText $ sorenessOutput db
   post urlNewExerciseSubmit do
-    muscles' <- param exerciseFormMusclesParam
-    category' <- param exerciseFormCategoryParam
-    description' <- param exerciseFormDescriptionParam
-    name' <- param exerciseFormNameParam
-    newDb <- modifyDb \db ->
-      db {exercises = Exercise {muscles = muscles', category = category', description = description', name = name'} : db.exercises}
-    html $ renderText $ exercisesHtml newDb
+    musclesRaw <- params
+    case traverse parseParam $ mapMaybe (\(paramName, paramValue) -> if paramName == exerciseFormMusclesParam then Just paramValue else Nothing) musclesRaw of
+      Left _parseError -> do
+        status status400
+        finish
+      Right muscles' -> do
+        case NE.nonEmpty muscles' of
+          Nothing -> do
+            status status400
+            finish
+          Just muscles'' -> do
+            category' <- param exerciseFormCategoryParam
+            description' <- param exerciseFormDescriptionParam
+            name' <- param exerciseFormNameParam
+            newDb <- modifyDb \db ->
+              db
+                { exercises =
+                    Exercise
+                      { muscles = muscles'',
+                        category = category',
+                        description = description',
+                        name = name'
+                      }
+                      : filter (\e -> e.name /= name') db.exercises
+                }
+            html $ renderText $ exercisesHtml newDb
+
   post urlNewExerciseCancel do
     html $ renderText newExerciseButtonHtml
+
+  get "/partial/edit-exercise/:exercise-name" do
+    readDb <- readDatabase
+    exerciseName <- param "exercise-name"
+    case find (\e -> e.name == exerciseName) readDb.exercises of
+      Nothing -> do
+        status status400
+        finish
+      Just exercise' -> do
+        html $ renderText $ exerciseFormHtml exercise'.name exercise'.category (NE.toList exercise'.muscles) exercise'.description
+
   post urlNewExercise do
-    html $ renderText newExerciseFormHtml
+    html $ renderText $ exerciseFormHtml (ExerciseName "") Strength [] ""
+
   post urlAddToWorkout do
     exerciseName :: ExerciseName <- param addToWorkoutExerciseName
     intensity' :: Intensity <- param addToWorkoutIntensity
@@ -553,6 +614,15 @@ main = scotty 3000 do
         )
     html $ renderText $ currentWorkoutHtml db
 
+  get "/partials/exercise-description/:name" do
+    exerciseName <- param "name"
+    readDb <- readDatabase
+    case find (\e -> e.name == exerciseName) readDb.exercises of
+      Nothing -> do
+        status status400
+        finish
+      Just e -> html $ renderText $ L.toHtmlRaw $ commonmarkToHtml [] [] e.description
+
   get "/exercises" do
     db <- readDatabase
     html $ renderText $ htmlSkeleton PageExercises $ exercisesHtml db
@@ -580,15 +650,6 @@ main = scotty 3000 do
       currentWorkoutHtml db
       L.hr_ [L.class_ "mb-3"]
       trainingHtml currentTime db Endurance
-
-  get "/partials/exercise-description/:name" do
-    exerciseName <- param "name"
-    readDb <- readDatabase
-    case find (\e -> e.name == exerciseName) readDb.exercises of
-      Nothing -> do
-        status status400
-        finish
-      Just e -> html $ renderText $ L.toHtmlRaw $ commonmarkToHtml [] [] e.description
 
   get "/" do
     db <- readDatabase
