@@ -1,4 +1,4 @@
-module MyocardioApp.Htmx (useHtmx, hxPost_, hxTarget_, hxGet_, SwapType (..), hxSwap_) where
+module MyocardioApp.Htmx (useHtmx, hxPost_, hxTarget_, hxGet_, SwapType (..), hxSwap_, hxEncoding_) where
 
 import Control.Monad (Monad)
 import Data.Eq (Eq)
@@ -49,3 +49,7 @@ hxGet_ = makeAttributes "data-hx-get"
 -- | <https://htmx.org/attributes/hx-target/>
 hxTarget_ :: Text -> Attributes
 hxTarget_ = makeAttributes "data-hx-target"
+
+-- | <https://htmx.org/attributes/hx-target/>
+hxEncoding_ :: Text -> Attributes
+hxEncoding_ = makeAttributes "data-hx-encoding"

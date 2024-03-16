@@ -9,6 +9,7 @@ module MyocardioApp.Database
     Category (..),
     allCategories,
     Exercise (..),
+    FileReference (..),
     ExerciseName (..),
     Intensity (..),
     intensityToText,
@@ -89,11 +90,18 @@ instance FromJSON ExerciseName
 
 instance ToJSON ExerciseName
 
+newtype FileReference = FileReference {getFileReference :: Text} deriving (Eq, Show, Generic)
+
+instance FromJSON FileReference
+
+instance ToJSON FileReference
+
 data Exercise = Exercise
   { muscles :: !(NE.NonEmpty Muscle),
     category :: !Category,
     description :: !Text,
-    name :: !ExerciseName
+    name :: !ExerciseName,
+    fileReferences :: ![FileReference]
   }
   deriving (Show, Eq, Generic)
 

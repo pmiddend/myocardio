@@ -40,6 +40,11 @@ executable myocardio-exe
     , text
     , time
     , scotty
+    , cryptohash-sha256
+    , wai-extra
+    , base16-bytestring
+    , directory
+    , bytestring
     , containers
     , safe
     , directory

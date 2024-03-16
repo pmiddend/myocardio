@@ -7,11 +7,15 @@
 module Main (main) where
 
 import CMarkGFM (commonmarkToHtml)
+import Control.Applicative (Applicative (pure))
 import Control.Monad (when, (>>=))
 import Control.Monad.IO.Class (MonadIO (liftIO))
+import Crypto.Hash.SHA256 (hashlazy)
 import Data.Bool (Bool (True), (&&))
+import qualified Data.ByteString.Base16 as Base16
+import qualified Data.ByteString.Lazy as BSL
 import Data.Eq (Eq ((/=)), (==))
-import Data.Foldable (Foldable (elem), find, forM_, mapM_)
+import Data.Foldable (Foldable (elem), find, forM_, mapM_, notElem)
 import Data.Function (($), (.))
 import Data.Functor ((<$>))
 import Data.Int (Int)
@@ -23,18 +27,21 @@ import Data.Ord (Ord ((<), (>)), comparing)
 import Data.Semigroup (Semigroup ((<>)))
 import qualified Data.Set as Set
 import Data.String (IsString)
-import Data.Text (Text, pack, toLower)
+import Data.Text (Text, pack, toLower, unpack)
+import qualified Data.Text.Encoding as TE
 import qualified Data.Text.Lazy as TL
 import Data.Time.Clock (UTCTime (utctDay, utctDayTime), diffUTCTime, getCurrentTime, nominalDay)
+import Data.Tuple (snd)
 import Lucid (renderText)
 import qualified Lucid as L
 import MyocardioApp.Database
   ( Category (Endurance, Mobility, Strength, Stretch),
     Database,
     DatabaseF (currentTraining, pastExercises, sorenessHistory),
-    Exercise (Exercise, category, description, muscles, name),
+    Exercise (Exercise, category, description, fileReferences, muscles, name),
     ExerciseName (ExerciseName),
     ExerciseWithIntensity (ExerciseWithIntensity, exercise, intensity, time),
+    FileReference (FileReference),
     Intensity (Intensity),
     Muscle,
     Soreness (Soreness, muscle, soreness, time),
@@ -49,9 +56,11 @@ import MyocardioApp.Database
 import MyocardioApp.Htmx (SwapType (SwapOuterHtml))
 import qualified MyocardioApp.Htmx as LX
 import Network.HTTP.Types.Status (status400)
+import Network.Wai.Parse (FileInfo (fileContent))
 import Safe (maximumByMay)
-import System.IO (IO)
-import Web.Scotty (Parsable (parseParam, parseParamList), finish, get, html, param, params, post, readEither, scotty, status)
+import System.Directory (createDirectoryIfMissing, removeFile)
+import System.IO (FilePath, IO)
+import Web.Scotty (ActionM, File, Parsable (parseParam, parseParamList), file, files, finish, get, html, param, params, post, readEither, scotty, status)
 import Prelude (Either (Left, Right), Enum (succ), Fractional ((/)), RealFrac (round), Show (show), Traversable (traverse))
 
 instance (Parsable a) => Parsable (NE.NonEmpty a) where
@@ -236,9 +245,15 @@ currentWorkoutHtml database =
               ]
               "Reset"
         L.form_ do
-          L.button_ [L.type_ "submit", L.class_ "btn btn-primary", LX.hxPost_ urlCommitWorkout, makeTarget idCurrentWorkout] do
-            icon "send"
-            L.span_ "Commit"
+          L.button_
+            [ L.type_ "submit",
+              L.class_ "btn btn-primary",
+              LX.hxPost_ urlCommitWorkout,
+              makeTarget idCurrentWorkout
+            ]
+            do
+              icon "send"
+              L.span_ "Commit"
 
 trainingHtml :: UTCTime -> Database -> Category -> L.Html ()
 trainingHtml currentTime database category' = do
@@ -354,6 +369,9 @@ urlNewExerciseSubmit = "/partial/new-exercise-submit"
 exerciseFormMusclesParam :: (IsString a) => a
 exerciseFormMusclesParam = "muscles"
 
+exerciseFormFilesToDeleteParam :: (IsString a) => a
+exerciseFormFilesToDeleteParam = "filesToDelete"
+
 exerciseFormCategoryParam :: (IsString a) => a
 exerciseFormCategoryParam = "category"
 
@@ -366,9 +384,9 @@ exerciseFormDescriptionParam = "description"
 idExerciseForm :: HtmlId
 idExerciseForm = HtmlId "new-exercise-form"
 
-exerciseFormHtml :: ExerciseName -> Category -> [Muscle] -> Text -> L.Html ()
-exerciseFormHtml editName editCategory editMuscles description' =
-  L.form_ do
+exerciseFormHtml :: ExerciseName -> Category -> [Muscle] -> [FileReference] -> Text -> L.Html ()
+exerciseFormHtml editName editCategory editMuscles fileRefs description' =
+  L.form_ [LX.hxEncoding_ "multipart/form-data"] do
     L.div_ [L.class_ "form-floating mb-3"] do
       L.input_
         [ L.class_ "form-control",
@@ -416,10 +434,29 @@ exerciseFormHtml editName editCategory editMuscles description' =
       ]
       (L.toHtml description')
 
+    L.h5_ "Attached files"
+    forM_ fileRefs \(FileReference fileRef) -> do
+      L.div_ [L.class_ "d-flex flex-row mb-3 align-items-center justify-content-evenly"] do
+        L.div_ do
+          L.div_ [L.class_ "form-check"] do
+            L.input_
+              [ L.type_ "checkbox",
+                L.class_ "form-check-input",
+                L.name_ exerciseFormFilesToDeleteParam,
+                L.id_ ("delete-" <> fileRef),
+                L.value_ fileRef
+              ]
+            L.label_ [L.class_ "form-check-label", L.for_ ("delete-" <> fileRef)] "Delete this"
+        L.div_ (L.img_ [L.src_ (pack uploadedFileDir <> "/" <> fileRef)])
+
+    L.div_ do
+      L.label_ [L.for_ "file-upload", L.class_ "form-label"] "Files to attach"
+      L.input_ [L.class_ "form-control", L.type_ "file", L.multiple_ "true", L.id_ "file-upload", L.name_ "attached-files"]
+
     L.div_ [L.class_ "hstack gap-3"] do
       L.button_
         [ L.type_ "submit",
-          L.class_ "btn btn-outline-primary",
+          L.class_ "btn btn-primary",
           LX.hxPost_ urlNewExerciseSubmit,
           LX.hxTarget_ ("#" <> idTopLevelContainer)
         ]
@@ -444,6 +481,11 @@ newExerciseButtonHtml =
       icon "plus-lg"
       L.span_ "New exercise"
 
+exerciseDescriptionHtml :: Exercise -> L.Html ()
+exerciseDescriptionHtml e = do
+  L.toHtmlRaw $ commonmarkToHtml [] [] e.description
+  forM_ e.fileReferences \(FileReference fileRef) -> L.img_ [L.src_ (pack uploadedFileDir <> "/" <> fileRef)]
+
 exercisesHtml :: Database -> L.Html ()
 exercisesHtml db = do
   L.div_ [makeId idExerciseForm, L.class_ "mb-3"] newExerciseButtonHtml
@@ -464,8 +506,7 @@ exercisesHtml db = do
     L.div_ [L.class_ "hstack gap-1 mb-3"] do
       L.span_ [L.class_ "badge text-bg-dark"] (L.toHtml $ packShow exercise'.category)
       forM_ exercise'.muscles \muscle' -> L.span_ [L.class_ "badge text-bg-info"] (L.toHtml $ packShow muscle')
-    L.div_ [L.class_ "alert alert-light"] do
-      L.toHtmlRaw $ commonmarkToHtml [] [] exercise'.description
+    L.div_ [L.class_ "alert alert-light"] (exerciseDescriptionHtml exercise')
 
 data CurrentPage
   = PageSoreness
@@ -499,6 +540,24 @@ headerHtml currentPage =
               L.toHtml title
    in L.header_ [L.class_ "d-flex justify-content-center py-3"] do
         L.ul_ [L.class_ "nav nav-pills"] (mapM_ makeItem pages)
+
+uploadedFileDir :: FilePath
+uploadedFileDir = "uploaded-files"
+
+uploadSingleFile :: (MonadIO m) => File -> m FileReference
+uploadSingleFile (_, fileInfo) = do
+  let fileHashText :: Text
+      fileHashText = TE.decodeUtf8 $ Base16.encode (hashlazy (fileContent fileInfo))
+  liftIO $ do
+    createDirectoryIfMissing True uploadedFileDir
+    BSL.writeFile (uploadedFileDir <> "/" <> unpack fileHashText) (fileContent fileInfo)
+  pure (FileReference fileHashText)
+
+paramValues :: Text -> ActionM [TL.Text]
+paramValues desiredParamName =
+  mapMaybe
+    (\(paramName, paramValue) -> if paramName == TL.fromStrict desiredParamName then Just paramValue else Nothing)
+    <$> params
 
 main :: IO ()
 main = scotty 3000 do
@@ -544,8 +603,10 @@ main = scotty 3000 do
 
     html $ renderText $ sorenessOutput db
   post urlNewExerciseSubmit do
-    musclesRaw <- params
-    case traverse parseParam $ mapMaybe (\(paramName, paramValue) -> if paramName == exerciseFormMusclesParam then Just paramValue else Nothing) musclesRaw of
+    uploadedFiles <- files
+    writtenFiles <- traverse uploadSingleFile uploadedFiles
+    musclesRaw <- paramValues exerciseFormMusclesParam
+    case traverse parseParam musclesRaw of
       Left _parseError -> do
         status status400
         finish
@@ -558,17 +619,28 @@ main = scotty 3000 do
             category' <- param exerciseFormCategoryParam
             description' <- param exerciseFormDescriptionParam
             name' <- param exerciseFormNameParam
+            toDelete <- (TL.toStrict <$>) <$> paramValues exerciseFormFilesToDeleteParam
+            forM_ toDelete (liftIO . removeFile . unpack . (\fn -> pack uploadedFileDir <> "/" <> fn))
             newDb <- modifyDb \db ->
-              db
-                { exercises =
-                    Exercise
-                      { muscles = muscles'',
-                        category = category',
-                        description = description',
-                        name = name'
-                      }
-                      : filter (\e -> e.name /= name') db.exercises
-                }
+              let existingExercise = find (\e -> e.name == name') db.exercises
+               in db
+                    { exercises =
+                        -- Add a new one
+                        Exercise
+                          { muscles = muscles'',
+                            category = category',
+                            description = description',
+                            name = name',
+                            fileReferences =
+                              maybe
+                                []
+                                (\existing -> filter (\(FileReference fileRef) -> fileRef `notElem` toDelete) existing.fileReferences)
+                                existingExercise
+                                <> writtenFiles
+                          }
+                          -- ...and filter out the existing one
+                          : filter (\e -> e.name /= name') db.exercises
+                    }
             html $ renderText $ exercisesHtml newDb
 
   post urlNewExerciseCancel do
@@ -582,10 +654,10 @@ main = scotty 3000 do
         status status400
         finish
       Just exercise' -> do
-        html $ renderText $ exerciseFormHtml exercise'.name exercise'.category (NE.toList exercise'.muscles) exercise'.description
+        html $ renderText $ exerciseFormHtml exercise'.name exercise'.category (NE.toList exercise'.muscles) exercise'.fileReferences exercise'.description
 
   post urlNewExercise do
-    html $ renderText $ exerciseFormHtml (ExerciseName "") Strength [] ""
+    html $ renderText $ exerciseFormHtml (ExerciseName "") Strength [] [] ""
 
   post urlAddToWorkout do
     exerciseName :: ExerciseName <- param addToWorkoutExerciseName
@@ -636,7 +708,7 @@ main = scotty 3000 do
       Nothing -> do
         status status400
         finish
-      Just e -> html $ renderText $ L.toHtmlRaw $ commonmarkToHtml [] [] e.description
+      Just e -> html $ renderText $ exerciseDescriptionHtml e
 
   get "/exercises" do
     db <- readDatabase
@@ -677,3 +749,7 @@ main = scotty 3000 do
   get "/" do
     db <- readDatabase
     html $ renderText $ htmlSkeleton PageSoreness $ sorenessInputAndOutput db
+
+  get "/uploaded-files/:fn" do
+    fileName <- param "fn"
+    file (uploadedFileDir <> "/" <> fileName)
