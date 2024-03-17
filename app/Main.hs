@@ -19,7 +19,7 @@ import Data.Foldable (Foldable (elem), find, forM_, mapM_, notElem)
 import Data.Function (($), (.))
 import Data.Functor ((<$>))
 import Data.Int (Int)
-import Data.List (filter)
+import Data.List (filter, zip)
 import qualified Data.List.NonEmpty as NE
 import Data.Maybe (Maybe (Just, Nothing), isJust, isNothing, mapMaybe, maybe)
 import Data.Monoid (Monoid (mempty))
@@ -27,12 +27,13 @@ import Data.Ord (Ord ((<), (>)), comparing)
 import Data.Semigroup (Semigroup ((<>)))
 import qualified Data.Set as Set
 import Data.String (IsString)
-import Data.Text (Text, pack, toLower, unpack)
+import Data.Text (Text, pack, replace, toLower, unpack)
 import qualified Data.Text.Encoding as TE
 import qualified Data.Text.Lazy as TL
 import Data.Time.Clock (UTCTime (utctDay, utctDayTime), diffUTCTime, getCurrentTime, nominalDay)
 import Lucid (renderText)
 import qualified Lucid as L
+import Lucid.Base (makeAttributes)
 import MyocardioApp.Database
   ( Category (Endurance, Mobility, Strength, Stretch),
     Database,
@@ -87,6 +88,9 @@ instance Parsable ExerciseName where
 
 newtype HtmlId = HtmlId Text
 
+htmlIdFromText :: Text -> Text
+htmlIdFromText = replace " " "_"
+
 makeId :: HtmlId -> L.Attributes
 makeId (HtmlId i) = L.id_ i
 
@@ -113,9 +117,8 @@ htmlSkeleton page content = do
       headerHtml page
       L.div_ [L.class_ "container", L.id_ idTopLevelContainer] do
         content
-
--- Not sure if we need the bootstrap JS, and it must save some bandwidth
--- L.script_ [L.src_ "https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"] ("" :: Text)
+      -- Not sure if we need the bootstrap JS, and it must save some bandwidth, so leave it out maybe
+      L.script_ [L.src_ "https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"] ("" :: Text)
 
 sorenessValueToEmoji :: SorenessValue -> Text
 sorenessValueToEmoji VerySore = "😭"
@@ -190,11 +193,11 @@ sorenessInputAndOutput database = do
         L.label_ [L.for_ "i-am-sore"] "I am sore here"
     L.div_ [L.class_ "col"] do
       L.div_ [L.class_ "form-check form-check-inline"] do
-        L.input_ [L.class_ "form-check-input", L.type_ "radio", L.name_ newSorenessHowSore, L.id_ "very sore", L.value_ (packShow VerySore), L.checked_]
-        L.label_ [L.class_ "form-check-label", L.for_ "very sore"] (L.toHtml $ sorenessValueToEmoji VerySore <> " VERY")
+        L.input_ [L.class_ "form-check-input", L.type_ "radio", L.name_ newSorenessHowSore, L.id_ "verysore", L.value_ (packShow VerySore), L.checked_]
+        L.label_ [L.class_ "form-check-label", L.for_ "verysore"] (L.toHtml $ sorenessValueToEmoji VerySore <> " VERY")
       L.div_ [L.class_ "form-check form-check-inline"] do
-        L.input_ [L.class_ "form-check-input", L.type_ "radio", L.name_ newSorenessHowSore, L.id_ "a little", L.value_ (packShow LittleSore)]
-        L.label_ [L.class_ "form-check-label", L.for_ "a little"] (L.toHtml $ sorenessValueToEmoji LittleSore <> " A LITTLE")
+        L.input_ [L.class_ "form-check-input", L.type_ "radio", L.name_ newSorenessHowSore, L.id_ "alittle", L.value_ (packShow LittleSore)]
+        L.label_ [L.class_ "form-check-label", L.for_ "alittle"] (L.toHtml $ sorenessValueToEmoji LittleSore <> " A LITTLE")
     L.div_ [L.class_ "col"] do
       L.button_
         [ L.class_ "btn btn-primary",
@@ -228,23 +231,57 @@ currentWorkoutHtml database =
         let musclesInvolved = currentExercises >>= (NE.toList . (.muscles) . (.exercise))
             musclesMissing = Set.toList $ Set.fromList allMuscles `Set.difference` Set.fromList musclesInvolved
         L.div_ [L.class_ "gap-1 mb-3"] do
-          L.span_ [L.class_ "text-muted me-1"] "Missing: "
+          L.span_ [L.class_ "text-muted me-1"] "Trained: "
           forM_ musclesInvolved \muscle' -> L.span_ [L.class_ "badge text-bg-success me-1"] (L.toHtml $ packShow muscle')
         L.div_ [L.class_ "gap-1 mb-3"] do
-          L.span_ [L.class_ "text-muted me-1"] "Trained: "
+          L.span_ [L.class_ "text-muted me-1"] "Missing: "
           forM_ musclesMissing \muscle' -> L.span_ [L.class_ "badge text-bg-warning me-1"] (L.toHtml $ packShow muscle')
-        L.ol_ $ forM_ currentExercises \exWithIn -> do
-          L.li_ do
-            L.span_ do
-              L.a_ [L.href_ ("#description-" <> packShow exWithIn.exercise.name)] (L.strong_ (L.toHtml (packShow exWithIn.exercise.name)))
-            L.span_ ", "
-            L.span_ [L.class_ "me-2"] (L.toHtml (intensityToText exWithIn.intensity))
-            L.a_
-              [ LX.hxPost_ ("/reset-current-workout?exercise-name=" <> packShow exWithIn.exercise.name),
-                L.href_ "#",
-                makeTarget idCurrentWorkout
+        forM_ currentExercises \exWithIn -> do
+          L.div_ [L.class_ "mb-3 card"] do
+            L.div_
+              [ L.class_ "carousel slide",
+                L.id_ ("carousel-" <> htmlIdFromText (packShow exWithIn.exercise.name)),
+                makeAttributes "data-bs-theme" "dark"
               ]
-              "Reset"
+              do
+                L.div_
+                  [L.class_ "carousel-inner"]
+                  ( forM_ (zip [0 ..] exWithIn.exercise.fileReferences) \(i, FileReference fileRef) ->
+                      L.div_
+                        [ L.class_ "carousel-item" <> if i == (0 :: Int) then L.class_ "active" else mempty
+                        ]
+                        $ L.img_ [L.src_ ("/" <> pack uploadedFileDir <> "/" <> fileRef), L.class_ "d-block w-100"]
+                  )
+                L.button_
+                  [ L.type_ "button",
+                    L.class_ "carousel-control-prev",
+                    makeAttributes "data-bs-target" ("#carousel-" <> htmlIdFromText (packShow exWithIn.exercise.name)),
+                    makeAttributes "data-bs-slide" "prev"
+                  ]
+                  (L.span_ [L.class_ "carousel-control-prev-icon"] mempty)
+                L.button_
+                  [ L.type_ "button",
+                    L.class_ "carousel-control-next",
+                    makeAttributes "data-bs-target" ("#carousel-" <> htmlIdFromText (packShow exWithIn.exercise.name)),
+                    makeAttributes "data-bs-slide" "next"
+                  ]
+                  (L.span_ [L.class_ "carousel-control-next-icon"] mempty)
+            L.div_ [L.class_ "card-body"] do
+              L.h6_ [L.class_ "card-title"] do
+                L.strong_ (L.toHtml (packShow exWithIn.exercise.name))
+              L.h6_ [L.class_ "card-subtitle"] (L.toHtml (intensityToText exWithIn.intensity))
+              L.p_ [L.class_ "card-text"] do
+                L.toHtmlRaw $ commonmarkToHtml [] [] exWithIn.exercise.description
+                L.button_
+                  [ LX.hxPost_ ("/reset-current-workout?exercise-name=" <> packShow exWithIn.exercise.name),
+                    makeTarget idCurrentWorkout,
+                    L.type_ "button",
+                    L.class_ "btn btn-secondary"
+                  ]
+                  do
+                    icon "trash"
+                    L.span_ "Don't use"
+
         L.form_ do
           L.button_
             [ L.type_ "submit",
@@ -356,7 +393,7 @@ trainingHtml currentTime database category' = do
 
       muscleToTrainingHtml :: Muscle -> L.Html ()
       muscleToTrainingHtml muscle' = do
-        L.h2_ [L.id_ ("training-section-" <> packShow muscle')] (L.toHtml $ packShow muscle')
+        L.h2_ [L.id_ ("training-section-" <> htmlIdFromText (packShow muscle'))] (L.toHtml $ packShow muscle')
         L.div_ [L.class_ "ms-3"] do
           lastTraining muscle'
           forM_ (exercisesForMuscle muscle') (outputExercise muscle')
@@ -405,7 +442,7 @@ exerciseFormHtml editName editCategory editMuscles fileRefs description' =
     L.div_ [L.class_ "d-flex justify-content-evenly mb-3"] $ forM_ allCategories \category' -> do
       L.input_
         [ L.class_ "btn-check",
-          L.id_ ("category-" <> packShow category'),
+          L.id_ ("category-" <> htmlIdFromText (packShow category')),
           L.type_ "radio",
           L.name_ exerciseFormCategoryParam,
           if category' == editCategory then L.checked_ else mempty,
@@ -420,7 +457,7 @@ exerciseFormHtml editName editCategory editMuscles fileRefs description' =
     L.div_ [L.class_ "mb-3"] $ forM_ allMuscles \muscle' -> do
       L.input_
         [ L.class_ "btn-check",
-          L.id_ ("muscle-" <> packShow muscle'),
+          L.id_ ("muscle-" <> htmlIdFromText (packShow muscle')),
           L.type_ "checkbox",
           L.name_ exerciseFormMusclesParam,
           L.value_ (packShow muscle'),
@@ -486,7 +523,7 @@ newExerciseButtonHtml =
       L.span_ "New exercise"
 
 exerciseImageHtml :: FileReference -> L.Html ()
-exerciseImageHtml (FileReference fileRef) = L.figure_ [L.class_ "figure"] $ L.img_ [L.src_ (pack uploadedFileDir <> "/" <> fileRef), L.class_ "figure-img img-fluid rounded"]
+exerciseImageHtml (FileReference fileRef) = L.figure_ [L.class_ "figure"] $ L.img_ [L.src_ ("/" <> pack uploadedFileDir <> "/" <> fileRef), L.class_ "figure-img img-fluid rounded"]
 
 exerciseDescriptionHtml :: Exercise -> L.Html ()
 exerciseDescriptionHtml e = do
@@ -501,7 +538,7 @@ exercisesHtml db = do
     icon "box2-heart"
     L.span_ "Exercise Descriptions"
   forM_ db.exercises \exercise' -> do
-    L.h3_ [L.id_ ("description-" <> packShow exercise'.name)] do
+    L.h3_ [L.id_ ("description-" <> htmlIdFromText (packShow exercise'.name))] do
       L.button_
         [ L.class_ "btn btn-sm btn-secondary me-2",
           LX.hxGet_
