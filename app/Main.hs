@@ -314,14 +314,15 @@ trainingHtml currentTime database category' = do
           Just exWithIntensity ->
             L.p_
               [L.class_ "text-muted"]
-              ( L.toHtml $
-                  "Last training: "
-                    <> dayDiffText currentTime exWithIntensity.time
-                    <> ", "
-                    <> packShow exWithIntensity.exercise.name
-                    <> " ("
-                    <> toLower (packShow exWithIntensity.exercise.category)
-                    <> ")"
+              ( L.em_ $
+                  L.toHtml $
+                    "Last training: "
+                      <> dayDiffText currentTime exWithIntensity.time
+                      <> ", "
+                      <> packShow exWithIntensity.exercise.name
+                      <> " ("
+                      <> toLower (packShow exWithIntensity.exercise.category)
+                      <> ")"
               )
       exercisesForMuscle :: Muscle -> [Exercise]
       exercisesForMuscle muscle' = filter (\e -> muscle' `elem` e.muscles) exercisePool
@@ -381,23 +382,24 @@ trainingHtml currentTime database category' = do
               [ L.class_ "form-control",
                 L.value_ (maybe "" (intensityToText . (.intensity)) lastExecutionOfThisExercise),
                 L.name_ addToWorkoutIntensity,
-                L.type_ "text"
+                L.type_ "text",
+                L.placeholder_ "Enter intensity here"
               ]
           L.button_
             [ L.class_ "btn btn-info",
-              L.type_ "button",
+              L.type_ "button btn-sm",
               LX.hxGet_ ("/partials/exercise-description/" <> packShow exerciseToOutput.name),
               LX.hxSwap_ SwapOuterHtml
             ]
             "Show details"
+          L.hr_ []
 
       muscleToTrainingHtml :: Muscle -> L.Html ()
       muscleToTrainingHtml muscle' = do
         L.h2_ [L.id_ ("training-section-" <> htmlIdFromText (packShow muscle'))] (L.toHtml $ packShow muscle')
         L.div_ [L.class_ "ms-3"] do
           lastTraining muscle'
-          forM_ (exercisesForMuscle muscle') (outputExercise muscle')
-        L.hr_ []
+          L.div_ [L.class_ "text-bg-light p-3 border rounded"] $ forM_ (exercisesForMuscle muscle') (outputExercise muscle')
 
   mapM_ muscleToTrainingHtml allMuscles
 
