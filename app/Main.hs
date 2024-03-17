@@ -225,6 +225,9 @@ currentWorkoutHtml database =
     case database.currentTraining of
       [] -> mempty
       currentExercises -> do
+        L.a_ [L.href_ "#exercise-list", L.class_ "icon-link mb-2"] do
+          "Go to exercise list"
+          icon "arrow-right"
         L.h1_ do
           icon "joystick"
           L.span_ "Current Workout"
@@ -295,7 +298,7 @@ currentWorkoutHtml database =
 
 trainingHtml :: UTCTime -> Database -> Category -> L.Html ()
 trainingHtml currentTime database category' = do
-  L.h1_ do
+  L.h1_ [L.id_ "exercise-list"] do
     icon "hand-thumbs-up"
     L.span_ "Exercise list"
   L.div_ [L.class_ "text-bg-light p-2"] do
