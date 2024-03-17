@@ -31,7 +31,6 @@ import Data.Text (Text, pack, toLower, unpack)
 import qualified Data.Text.Encoding as TE
 import qualified Data.Text.Lazy as TL
 import Data.Time.Clock (UTCTime (utctDay, utctDayTime), diffUTCTime, getCurrentTime, nominalDay)
-import Data.Tuple (snd)
 import Lucid (renderText)
 import qualified Lucid as L
 import MyocardioApp.Database
@@ -60,7 +59,7 @@ import Network.Wai.Parse (FileInfo (fileContent))
 import Safe (maximumByMay)
 import System.Directory (createDirectoryIfMissing, removeFile)
 import System.IO (FilePath, IO)
-import Web.Scotty (ActionM, File, Parsable (parseParam, parseParamList), file, files, finish, get, html, param, params, post, readEither, scotty, status)
+import Web.Scotty (ActionM, File, Parsable (parseParam, parseParamList), file, files, finish, formParam, formParams, get, html, pathParam, post, readEither, scotty, status)
 import Prelude (Either (Left, Right), Enum (succ), Fractional ((/)), RealFrac (round), Show (show), Traversable (traverse))
 
 instance (Parsable a) => Parsable (NE.NonEmpty a) where
@@ -559,17 +558,17 @@ uploadSingleFile (_, fileInfo) = do
     BSL.writeFile (uploadedFileDir <> "/" <> unpack fileHashText) (fileContent fileInfo)
   pure (FileReference fileHashText)
 
-paramValues :: Text -> ActionM [TL.Text]
+paramValues :: Text -> ActionM [Text]
 paramValues desiredParamName =
   mapMaybe
-    (\(paramName, paramValue) -> if paramName == TL.fromStrict desiredParamName then Just paramValue else Nothing)
-    <$> params
+    (\(paramName, paramValue) -> if paramName == desiredParamName then Just paramValue else Nothing)
+    <$> formParams
 
 main :: IO ()
 main = scotty 3000 do
   post urlNewSoreness do
-    muscle' <- param newSorenessMuscle
-    howSore' <- param newSorenessHowSore
+    muscle' <- formParam newSorenessMuscle
+    howSore' <- formParam newSorenessHowSore
 
     currentTime <- liftIO getCurrentTime
 
@@ -589,7 +588,7 @@ main = scotty 3000 do
 
     html $ renderText $ sorenessOutput db
   post "/reset-soreness" do
-    muscle' <- param "muscle"
+    muscle' <- formParam "muscle"
 
     currentTime <- liftIO getCurrentTime
 
@@ -612,7 +611,7 @@ main = scotty 3000 do
     uploadedFiles <- files
     writtenFiles <- traverse uploadSingleFile uploadedFiles
     musclesRaw <- paramValues exerciseFormMusclesParam
-    case traverse parseParam musclesRaw of
+    case traverse (parseParam . TL.fromStrict) musclesRaw of
       Left _parseError -> do
         status status400
         finish
@@ -622,10 +621,10 @@ main = scotty 3000 do
             status status400
             finish
           Just muscles'' -> do
-            category' <- param exerciseFormCategoryParam
-            description' <- param exerciseFormDescriptionParam
-            name' <- param exerciseFormNameParam
-            toDelete <- (TL.toStrict <$>) <$> paramValues exerciseFormFilesToDeleteParam
+            category' <- formParam exerciseFormCategoryParam
+            description' <- formParam exerciseFormDescriptionParam
+            name' <- formParam exerciseFormNameParam
+            toDelete <- paramValues exerciseFormFilesToDeleteParam
             forM_ toDelete (liftIO . removeFile . unpack . (\fn -> pack uploadedFileDir <> "/" <> fn))
             newDb <- modifyDb \db ->
               let existingExercise = find (\e -> e.name == name') db.exercises
@@ -654,7 +653,7 @@ main = scotty 3000 do
 
   get "/partial/edit-exercise/:exercise-name" do
     readDb <- readDatabase
-    exerciseName <- param "exercise-name"
+    exerciseName <- pathParam "exercise-name"
     case find (\e -> e.name == exerciseName) readDb.exercises of
       Nothing -> do
         status status400
@@ -666,8 +665,8 @@ main = scotty 3000 do
     html $ renderText $ exerciseFormHtml (ExerciseName "") Strength [] [] ""
 
   post urlAddToWorkout do
-    exerciseName :: ExerciseName <- param addToWorkoutExerciseName
-    intensity' :: Intensity <- param addToWorkoutIntensity
+    exerciseName :: ExerciseName <- formParam addToWorkoutExerciseName
+    intensity' :: Intensity <- formParam addToWorkoutIntensity
     currentTime <- liftIO getCurrentTime
     readDb <- readDatabase
     case find (\e -> e.name == exerciseName) readDb.exercises of
@@ -696,7 +695,7 @@ main = scotty 3000 do
     html $ renderText $ currentWorkoutHtml newDb
 
   post "/reset-current-workout" do
-    exercise' :: ExerciseName <- param "exercise-name"
+    exercise' :: ExerciseName <- formParam "exercise-name"
     db <-
       modifyDb
         ( \db ->
@@ -708,7 +707,7 @@ main = scotty 3000 do
     html $ renderText $ currentWorkoutHtml db
 
   get "/partials/exercise-description/:name" do
-    exerciseName <- param "name"
+    exerciseName <- pathParam "name"
     readDb <- readDatabase
     case find (\e -> e.name == exerciseName) readDb.exercises of
       Nothing -> do
@@ -757,5 +756,5 @@ main = scotty 3000 do
     html $ renderText $ htmlSkeleton PageSoreness $ sorenessInputAndOutput db
 
   get "/uploaded-files/:fn" do
-    fileName <- param "fn"
+    fileName <- pathParam "fn"
     file (uploadedFileDir <> "/" <> fileName)

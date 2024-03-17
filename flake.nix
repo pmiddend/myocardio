@@ -27,29 +27,12 @@
         in
         {
           packages.${packageName} =
-            haskellPackages.callCabal2nix packageName self {
-              # tango = pkgs.tango-controls-9_4;
-              # ctango = self.packages.${system}.ctango;
-            };
+            haskellPackages.callCabal2nix packageName self
+              {
+                scotty = haskellPackages.scotty_0_21;
+              };
 
           packages.default = self.packages.${system}.${packageName};
-
-          # packages.ctango = pkgs.stdenv.mkDerivation {
-          #   pname = "ctango";
-          #   version = "1.0";
-
-          #   src = c_tango/.;
-
-          #   nativeBuildInputs = with pkgs; [ cmake pkg-config ];
-          #   buildInputs = with pkgs; [
-          #     tango-controls-9_4
-          #     zeromq
-          #     cppzmq
-          #     omniorb_4_2
-          #     libjpeg_turbo
-          #     libsodium
-          #   ];
-          # };
 
           defaultPackage = self.packages.${system}.default;
 
