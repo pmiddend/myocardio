@@ -173,16 +173,16 @@ anchorSorenessOutput = "soreness-output"
 idCurrentWorkout :: HtmlId
 idCurrentWorkout = HtmlId "current-workout"
 
-icon :: Text -> L.Html ()
-icon name' = L.i_ [L.class_ ("bi-" <> name' <> " me-2")] mempty
+iconHtml :: Text -> L.Html ()
+iconHtml name' = L.i_ [L.class_ ("bi-" <> name' <> " me-2")] mempty
 
-icon' :: Text -> L.Html ()
-icon' name' = L.i_ [L.class_ ("bi-" <> name')] mempty
+iconHtml' :: Text -> L.Html ()
+iconHtml' name' = L.i_ [L.class_ ("bi-" <> name')] mempty
 
 sorenessInputAndOutput :: Database -> L.Html ()
 sorenessInputAndOutput database = do
   L.h1_ do
-    icon "graph-down-arrow"
+    iconHtml "graph-down-arrow"
     L.span_ "Soreness"
   L.form_ [L.class_ "row"] do
     L.div_ [L.class_ "col"] do
@@ -227,9 +227,9 @@ currentWorkoutHtml database =
       currentExercises -> do
         L.a_ [L.href_ "#exercise-list", L.class_ "icon-link mb-2"] do
           "Go to exercise list"
-          icon "arrow-right"
+          iconHtml "arrow-right"
         L.h1_ do
-          icon "joystick"
+          iconHtml "joystick"
           L.span_ "Current Workout"
         let musclesInvolved = currentExercises >>= (NE.toList . (.muscles) . (.exercise))
             musclesMissing = Set.toList $ Set.fromList allMuscles `Set.difference` Set.fromList musclesInvolved
@@ -276,13 +276,13 @@ currentWorkoutHtml database =
               L.p_ [L.class_ "card-text"] do
                 L.toHtmlRaw $ commonmarkToHtml [] [] exWithIn.exercise.description
                 L.button_
-                  [ LX.hxPost_ ("/reset-current-workout?exercise-name=" <> packShow exWithIn.exercise.name),
+                  [ LX.hxPost_ ("/" <> urlRemoveFromWorkout <> "?exercise-name=" <> packShow exWithIn.exercise.name),
                     makeTarget idCurrentWorkout,
                     L.type_ "button",
                     L.class_ "btn btn-secondary"
                   ]
                   do
-                    icon "trash"
+                    iconHtml "trash"
                     L.span_ "Don't use"
 
         L.form_ do
@@ -293,13 +293,13 @@ currentWorkoutHtml database =
               makeTarget idCurrentWorkout
             ]
             do
-              icon "send"
+              iconHtml "send"
               L.span_ "Commit"
 
 trainingHtml :: UTCTime -> Database -> Category -> L.Html ()
 trainingHtml currentTime database category' = do
   L.h1_ [L.id_ "exercise-list"] do
-    icon "hand-thumbs-up"
+    iconHtml "hand-thumbs-up"
     L.span_ "Exercise list"
   L.div_ [L.class_ "text-bg-light p-2"] do
     L.ul_ $ forM_ allMuscles \muscle' -> do
@@ -340,6 +340,8 @@ trainingHtml currentTime database category' = do
             nextExerciseAfterThisContainingThisMuscle :: Maybe (ExerciseWithIntensity Exercise)
             nextExerciseAfterThisContainingThisMuscle =
               beginningOfDayAfterExecution >>= \x -> find (\e -> e.time > x && muscle' `elem` e.exercise.muscles) database.pastExercises
+            partOfCurrentWorkout :: Bool
+            partOfCurrentWorkout = isJust (find (\e -> e.exercise.name == exerciseToOutput.name) database.currentTraining)
             pastTimeReadable = case lastExecutionOfThisExercise of
               Nothing -> "never executed!"
               Just lastExecutionInstance ->
@@ -366,43 +368,55 @@ trainingHtml currentTime database category' = do
               L.name_ addToWorkoutExerciseName,
               L.value_ (packShow exerciseToOutput.name)
             ]
-          L.h5_ $ do
+          L.h5_ do
             L.span_ $ L.toHtml $ packShow exerciseToOutput.name
             when (isJust lastExecutionOfThisExercise && isNothing nextExerciseAfterThisContainingThisMuscle) do
               L.span_ [L.class_ "ms-2 badge text-bg-secondary"] "Last"
-          L.p_ [L.class_ "text-muted"] (L.toHtml $ "Last: " <> pastTimeReadable)
-          L.div_ [L.class_ "input-group mb-3"] do
-            L.button_
-              [ L.type_ "button",
-                LX.hxPost_ urlAddToWorkout,
-                L.class_ "btn btn-sm btn-primary",
-                makeTarget idCurrentWorkout
+          if partOfCurrentWorkout
+            then L.button_
+              [ L.class_ "btn btn-secondary btn-sm",
+                LX.hxPost_ ("/" <> urlRemoveFromWorkout <> "?exercise-name=" <> packShow exerciseToOutput.name)
               ]
               do
-                icon "journal-plus"
-                L.span_ "Add to workout"
-            L.input_
-              [ L.class_ "form-control",
-                L.value_ (maybe "" (intensityToText . (.intensity)) lastExecutionOfThisExercise),
-                L.name_ addToWorkoutIntensity,
-                L.type_ "text",
-                L.placeholder_ "Enter intensity here"
-              ]
-          L.button_
-            [ L.class_ "btn btn-info",
-              L.type_ "button btn-sm",
-              LX.hxGet_ ("/partials/exercise-description/" <> packShow exerciseToOutput.name),
-              LX.hxSwap_ SwapOuterHtml
-            ]
-            "Show details"
-          L.hr_ []
+                iconHtml "trash"
+                "Remove from workout"
+            else do
+              L.p_ [L.class_ "text-muted"] (L.toHtml $ "Last: " <> pastTimeReadable)
+              L.div_ [L.class_ "input-group mb-3"] do
+                L.button_
+                  [ L.type_ "button",
+                    LX.hxPost_ urlAddToWorkout,
+                    L.class_ "btn btn-sm btn-primary",
+                    makeTarget idCurrentWorkout
+                  ]
+                  do
+                    iconHtml "journal-plus"
+                    L.span_ "Add to workout"
+                L.input_
+                  [ L.class_ "form-control",
+                    L.value_ (maybe "" (intensityToText . (.intensity)) lastExecutionOfThisExercise),
+                    L.name_ addToWorkoutIntensity,
+                    L.type_ "text",
+                    L.placeholder_ "Enter intensity here"
+                  ]
+              L.button_
+                [ L.class_ "btn btn-info",
+                  L.type_ "button btn-sm",
+                  LX.hxGet_ ("/partials/exercise-description/" <> packShow exerciseToOutput.name),
+                  LX.hxSwap_ SwapOuterHtml
+                ]
+                "Show details"
+              L.hr_ []
 
       muscleToTrainingHtml :: Muscle -> L.Html ()
       muscleToTrainingHtml muscle' = do
-        L.h2_ [L.id_ ("training-section-" <> htmlIdFromText (packShow muscle'))] (L.toHtml $ packShow muscle')
-        L.div_ [L.class_ "ms-3"] do
-          lastTraining muscle'
-          L.div_ [L.class_ "text-bg-light p-3 border rounded"] $ forM_ (exercisesForMuscle muscle') (outputExercise muscle')
+        case exercisesForMuscle muscle' of
+          [] -> mempty
+          exercisesForThisMuscle -> do
+            L.h2_ [L.id_ ("training-section-" <> htmlIdFromText (packShow muscle')), L.class_ "mt-3"] (L.toHtml $ packShow muscle')
+            L.div_ [L.class_ "ms-3"] do
+              lastTraining muscle'
+              L.div_ [L.class_ "text-bg-light p-3 border rounded"] $ forM_ exercisesForThisMuscle (outputExercise muscle')
 
   mapM_ muscleToTrainingHtml allMuscles
 
@@ -524,7 +538,7 @@ newExerciseButtonHtml =
       makeTarget idExerciseForm
     ]
     do
-      icon "plus-lg"
+      iconHtml "plus-lg"
       L.span_ "New exercise"
 
 exerciseImageHtml :: FileReference -> L.Html ()
@@ -540,7 +554,7 @@ exercisesHtml db = do
   L.div_ [makeId idExerciseForm, L.class_ "mb-3"] newExerciseButtonHtml
   L.hr_ []
   L.h2_ do
-    icon "box2-heart"
+    iconHtml "box2-heart"
     L.span_ "Exercise Descriptions"
   forM_ db.exercises \exercise' -> do
     L.h3_ [L.id_ ("description-" <> htmlIdFromText (packShow exercise'.name))] do
@@ -550,7 +564,7 @@ exercisesHtml db = do
             ("/partial/edit-exercise/" <> packShow exercise'.name),
           makeTarget idExerciseForm
         ]
-        (icon' "pencil-square")
+        (iconHtml' "pencil-square")
       L.toHtml (packShow exercise'.name)
     L.div_ [L.class_ "hstack gap-1 mb-3"] do
       L.span_ [L.class_ "badge text-bg-dark"] (L.toHtml $ packShow exercise'.category)
@@ -558,7 +572,7 @@ exercisesHtml db = do
     L.div_ [L.class_ "alert alert-light"] (exerciseDescriptionHtml exercise')
 
 data CurrentPage
-  = PageSoreness
+  = PageCurrent
   | PageStrength
   | PageStretch
   | PageEndurance
@@ -566,32 +580,45 @@ data CurrentPage
   | PageExercises
   deriving (Eq)
 
+data PageDescription = PageDescription
+  { enum :: !CurrentPage,
+    url :: !Text,
+    icon :: !Text,
+    description :: !Text
+  }
+
 headerHtml :: CurrentPage -> L.Html ()
 headerHtml currentPage =
-  let pages =
-        [ (PageSoreness, "", "graph-down-arrow", "Soreness"),
-          (PageStrength, "training/strength", "hammer", "Strength"),
-          (PageEndurance, "training/endurance", "person-walking", "Endurance"),
-          (PageStretch, "training/stretch", "rulers", "Stretch"),
-          (PageMobility, "training/mobility", "airplane", "Mobility"),
-          (PageExercises, "exercises", "box2-heart", "Exercises")
+  let exerciseLists =
+        [ PageDescription PageStrength "training/strength" "hammer" "Strength",
+          PageDescription PageEndurance "training/endurance" "person-walking" "Endurance",
+          PageDescription PageStretch "training/stretch" "rulers" "Stretch",
+          PageDescription PageMobility "training/mobility" "airplane" "Mobility"
         ]
-      makeItem :: (CurrentPage, Text, Text, Text) -> L.Html ()
-      makeItem (enum, url, iconName, title) =
+      otherPages =
+        [ PageDescription PageCurrent "" "graph-down-arrow" "Current",
+          PageDescription PageExercises "exercises" "box2-heart" "Exercises"
+        ]
+      makeItem :: PageDescription -> L.Html ()
+      makeItem pd =
         L.li_ [L.class_ "nav-item"] do
           L.a_
-            [ L.href_ ("/" <> url),
+            [ L.href_ ("/" <> pd.url),
               L.class_ "nav-link",
-              if currentPage == enum then L.class_ "active" else mempty
+              if currentPage == pd.enum then L.class_ "active" else mempty
             ]
             do
-              icon iconName
-              L.toHtml title
-   in L.header_ [L.class_ "d-flex justify-content-center py-3"] do
-        L.ul_ [L.class_ "nav nav-pills"] (mapM_ makeItem pages)
+              iconHtml pd.icon
+              L.toHtml pd.description
+   in L.header_ [L.class_ "py-3"] do
+        L.div_ [L.class_ "d-flex justify-content-center align-items-center"] (L.ul_ [L.class_ "nav nav-pills"] (mapM_ makeItem exerciseLists))
+        L.div_ [L.class_ "d-flex justify-content-center align-items-center"] (L.ul_ [L.class_ "nav nav-pills"] (mapM_ makeItem otherPages))
 
 uploadedFileDir :: FilePath
 uploadedFileDir = "uploaded-files"
+
+urlRemoveFromWorkout :: (IsString a) => a
+urlRemoveFromWorkout = "/reset-current-workout"
 
 uploadSingleFile :: (MonadIO m) => File -> m FileReference
 uploadSingleFile (_, fileInfo) = do
@@ -738,7 +765,7 @@ main = scotty 3000 do
       db {currentTraining = [], pastExercises = db.currentTraining <> db.pastExercises}
     html $ renderText $ currentWorkoutHtml newDb
 
-  post "/reset-current-workout" do
+  post urlRemoveFromWorkout do
     exercise' :: ExerciseName <- formParam "exercise-name"
     db <-
       modifyDb
@@ -767,7 +794,6 @@ main = scotty 3000 do
     db <- readDatabase
     currentTime <- liftIO getCurrentTime
     html $ renderText $ htmlSkeleton PageStrength $ do
-      currentWorkoutHtml db
       L.hr_ [L.class_ "mb-3"]
       trainingHtml currentTime db Strength
 
@@ -775,7 +801,6 @@ main = scotty 3000 do
     db <- readDatabase
     currentTime <- liftIO getCurrentTime
     html $ renderText $ htmlSkeleton PageStretch $ do
-      currentWorkoutHtml db
       L.hr_ [L.class_ "mb-3"]
       trainingHtml currentTime db Stretch
 
@@ -783,7 +808,6 @@ main = scotty 3000 do
     db <- readDatabase
     currentTime <- liftIO getCurrentTime
     html $ renderText $ htmlSkeleton PageMobility $ do
-      currentWorkoutHtml db
       L.hr_ [L.class_ "mb-3"]
       trainingHtml currentTime db Mobility
 
@@ -791,13 +815,15 @@ main = scotty 3000 do
     db <- readDatabase
     currentTime <- liftIO getCurrentTime
     html $ renderText $ htmlSkeleton PageEndurance $ do
-      currentWorkoutHtml db
       L.hr_ [L.class_ "mb-3"]
       trainingHtml currentTime db Endurance
 
   get "/" do
     db <- readDatabase
-    html $ renderText $ htmlSkeleton PageSoreness $ sorenessInputAndOutput db
+    html $ renderText $ htmlSkeleton PageCurrent $ do
+      currentWorkoutHtml db
+      L.hr_ [L.class_ "mb-3"]
+      sorenessInputAndOutput db
 
   get "/uploaded-files/:fn" do
     fileName <- pathParam "fn"
