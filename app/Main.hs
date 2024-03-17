@@ -228,8 +228,10 @@ currentWorkoutHtml database =
         let musclesInvolved = currentExercises >>= (NE.toList . (.muscles) . (.exercise))
             musclesMissing = Set.toList $ Set.fromList allMuscles `Set.difference` Set.fromList musclesInvolved
         L.div_ [L.class_ "gap-1 mb-3"] do
-          forM_ musclesInvolved \muscle' -> L.span_ [L.class_ "badge text-bg-info me-1"] (L.toHtml $ packShow muscle')
+          L.span_ [L.class_ "text-muted me-1"] "Missing: "
+          forM_ musclesInvolved \muscle' -> L.span_ [L.class_ "badge text-bg-success me-1"] (L.toHtml $ packShow muscle')
         L.div_ [L.class_ "gap-1 mb-3"] do
+          L.span_ [L.class_ "text-muted me-1"] "Trained: "
           forM_ musclesMissing \muscle' -> L.span_ [L.class_ "badge text-bg-warning me-1"] (L.toHtml $ packShow muscle')
         L.ol_ $ forM_ currentExercises \exWithIn -> do
           L.li_ do
