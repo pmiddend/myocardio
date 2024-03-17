@@ -228,10 +228,10 @@ currentWorkoutHtml database =
           L.span_ "Current Workout"
         let musclesInvolved = currentExercises >>= (NE.toList . (.muscles) . (.exercise))
             musclesMissing = Set.toList $ Set.fromList allMuscles `Set.difference` Set.fromList musclesInvolved
-        L.div_ [L.class_ "hstack gap-1 mb-3"] do
-          forM_ musclesInvolved \muscle' -> L.span_ [L.class_ "badge text-bg-info"] (L.toHtml $ packShow muscle')
-        L.div_ [L.class_ "hstack gap-1 mb-3"] do
-          forM_ musclesMissing \muscle' -> L.span_ [L.class_ "badge text-bg-warning"] (L.toHtml $ packShow muscle')
+        L.div_ [L.class_ "gap-1 mb-3"] do
+          forM_ musclesInvolved \muscle' -> L.span_ [L.class_ "badge text-bg-info me-1"] (L.toHtml $ packShow muscle')
+        L.div_ [L.class_ "gap-1 mb-3"] do
+          forM_ musclesMissing \muscle' -> L.span_ [L.class_ "badge text-bg-warning me-1"] (L.toHtml $ packShow muscle')
         L.ol_ $ forM_ currentExercises \exWithIn -> do
           L.li_ do
             L.span_ do
@@ -259,7 +259,10 @@ trainingHtml :: UTCTime -> Database -> Category -> L.Html ()
 trainingHtml currentTime database category' = do
   L.h1_ do
     icon "hand-thumbs-up"
-    L.span_ "Training"
+    L.span_ "Exercise list"
+  L.div_ [L.class_ "text-bg-light p-2"] do
+    L.ul_ $ forM_ allMuscles \muscle' -> do
+      L.li_ (L.a_ [L.href_ ("#training-section-" <> packShow muscle')] (L.toHtml (packShow muscle')))
   let exercisePool = filter (\e -> e.category == category') database.exercises
       exerciseWithIntensityTrainsMuscle :: Muscle -> ExerciseWithIntensity Exercise -> Bool
       exerciseWithIntensityTrainsMuscle muscle' e = muscle' `elem` e.exercise.muscles
@@ -352,7 +355,7 @@ trainingHtml currentTime database category' = do
 
       muscleToTrainingHtml :: Muscle -> L.Html ()
       muscleToTrainingHtml muscle' = do
-        L.h2_ (L.toHtml $ packShow muscle')
+        L.h2_ [L.id_ ("training-section-" <> packShow muscle')] (L.toHtml $ packShow muscle')
         L.div_ [L.class_ "ms-3"] do
           lastTraining muscle'
           forM_ (exercisesForMuscle muscle') (outputExercise muscle')
@@ -447,7 +450,7 @@ exerciseFormHtml editName editCategory editMuscles fileRefs description' =
                 L.value_ fileRef
               ]
             L.label_ [L.class_ "form-check-label", L.for_ ("delete-" <> fileRef)] "Delete this"
-        L.div_ (L.img_ [L.src_ (pack uploadedFileDir <> "/" <> fileRef)])
+        L.div_ (exerciseImageHtml (FileReference fileRef))
 
     L.div_ do
       L.label_ [L.for_ "file-upload", L.class_ "form-label"] "Files to attach"
@@ -481,10 +484,13 @@ newExerciseButtonHtml =
       icon "plus-lg"
       L.span_ "New exercise"
 
+exerciseImageHtml :: FileReference -> L.Html ()
+exerciseImageHtml (FileReference fileRef) = L.figure_ [L.class_ "figure"] $ L.img_ [L.src_ (pack uploadedFileDir <> "/" <> fileRef), L.class_ "figure-img img-fluid rounded"]
+
 exerciseDescriptionHtml :: Exercise -> L.Html ()
 exerciseDescriptionHtml e = do
   L.toHtmlRaw $ commonmarkToHtml [] [] e.description
-  forM_ e.fileReferences \(FileReference fileRef) -> L.img_ [L.src_ (pack uploadedFileDir <> "/" <> fileRef)]
+  forM_ e.fileReferences exerciseImageHtml
 
 exercisesHtml :: Database -> L.Html ()
 exercisesHtml db = do

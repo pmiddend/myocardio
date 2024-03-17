@@ -48,15 +48,22 @@ import Prelude (Applicative (pure), Bounded, Either (Left, Right), Enum, Eq, Ord
 data Muscle
   = Neck
   | Biceps
+  | WristFlexors
   | Triceps
+  | Pecs
+  | Shoulders
+  | UpperBack
   | Core
   | Adductors
+  | LowerBack
+  | QL
   | GluteusMedius
   | GluteusMaximus
   | HipFlexors
   | Quadriceps
   | Hamstrings
   | Calves
+  | Ankles
   | Peroneals
   deriving (Show, Eq, Generic, Enum, Bounded, Ord, Read)
 
