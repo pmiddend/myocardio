@@ -1,4 +1,5 @@
 {-# LANGUAGE DuplicateRecordFields #-}
+{-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE OverloadedRecordDot #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
@@ -43,24 +44,23 @@ import MyocardioApp.Database
     ExerciseWithIntensity (ExerciseWithIntensity, exercise, intensity, time),
     FileReference (FileReference),
     Intensity (Intensity),
-    Muscle,
+    Muscle (Pecs),
     Soreness (Soreness, muscle, soreness, time),
     SorenessValue (LittleSore, NotSore, VerySore),
     allCategories,
     allMuscles,
     exercises,
     intensityToText,
-    modifyDb,
+    modifyDb',
     readDatabase,
   )
-import MyocardioApp.Htmx (SwapType (SwapOuterHtml))
-import qualified MyocardioApp.Htmx as LX
 import Network.HTTP.Types.Status (status400)
-import Network.Wai.Parse (FileInfo (fileContent))
+import Network.Wai.Parse (FileInfo (fileContent, fileName))
 import Safe (maximumByMay)
 import System.Directory (createDirectoryIfMissing, removeFile)
 import System.IO (FilePath, IO)
-import Web.Scotty (ActionM, File, Parsable (parseParam, parseParamList), file, files, finish, formParam, formParams, get, html, pathParam, post, readEither, scotty, status)
+import Text.Read (Read)
+import Web.Scotty (ActionM, File, Parsable (parseParam, parseParamList), capture, file, files, finish, formParam, formParamMaybe, formParams, get, html, pathParam, post, queryParamMaybe, readEither, redirect, scotty, status)
 import Prelude (Either (Left, Right), Enum (succ), Fractional ((/)), RealFrac (round), Show (show), Traversable (traverse))
 
 instance (Parsable a) => Parsable (NE.NonEmpty a) where
@@ -94,20 +94,16 @@ htmlIdFromText = replace " " "_"
 makeId :: HtmlId -> L.Attributes
 makeId (HtmlId i) = L.id_ i
 
-makeTarget :: HtmlId -> L.Attributes
-makeTarget (HtmlId i) = LX.hxTarget_ ("#" <> i)
-
 packShow :: (Show a) => a -> Text
 packShow = pack . show
 
-idTopLevelContainer :: (IsString a) => a
-idTopLevelContainer = "top-level-container"
+idTopLevelContainer :: HtmlId
+idTopLevelContainer = HtmlId "top-level-container"
 
 htmlSkeleton :: CurrentPage -> L.Html () -> L.Html ()
 htmlSkeleton page content = do
   L.doctypehtml_ $ do
     L.head_ $ do
-      LX.useHtmx
       L.meta_ [L.charset_ "utf-8"]
       L.meta_ [L.name_ "viewport", L.content_ "width=device-width, initial-scale=1"]
       L.title_ "myocardio - power up your routines"
@@ -115,7 +111,7 @@ htmlSkeleton page content = do
       L.link_ [L.href_ "https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css", L.rel_ "stylesheet"]
     L.body_ $ do
       headerHtml page
-      L.div_ [L.class_ "container", L.id_ idTopLevelContainer] do
+      L.div_ [L.class_ "container", makeId idTopLevelContainer] do
         content
       -- Not sure if we need the bootstrap JS, and it must save some bandwidth, so leave it out maybe
       L.script_ [L.src_ "https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"] ("" :: Text)
@@ -134,41 +130,15 @@ sorenessOutput database = do
           Just (Soreness {soreness = NotSore}) -> Nothing
           otherValue -> otherValue
       sorenessToHtml :: Soreness -> L.Html ()
-      sorenessToHtml soreness' = L.li_ do
+      sorenessToHtml soreness' = L.li_ $ L.form_ [L.action_ "/reset-soreness", L.method_ "post"] do
+        L.input_ [L.type_ "hidden", L.name_ "muscle", L.value_ (packShow soreness'.muscle)]
         L.span_ [L.class_ "me-1"] (L.toHtml (sorenessValueToEmoji soreness'.soreness))
         L.strong_ [L.class_ "me-1"] (L.toHtml (packShow soreness'.muscle))
-        L.a_
-          [ LX.hxPost_ ("/reset-soreness?muscle=" <> packShow soreness'.muscle),
-            L.href_ "#",
-            LX.hxTarget_ ("#" <> anchorSorenessOutput)
-          ]
+        L.button_
+          [L.type_ "submit", L.class_ "btn btn-link"]
           "Reset"
   L.div_ [L.id_ "soreness-output"] do
     L.ul_ (mapM_ sorenessToHtml $ mapMaybe muscleToSoreness allMuscles)
-
-urlNewSoreness :: (IsString a) => a
-urlNewSoreness = "/new-soreness"
-
-urlNewExercise :: (IsString a) => a
-urlNewExercise = "/partial/new-exercise"
-
-urlAddToWorkout :: (IsString a) => a
-urlAddToWorkout = "/add-to-workout"
-
-addToWorkoutExerciseName :: (IsString a) => a
-addToWorkoutExerciseName = "exercise-name"
-
-addToWorkoutIntensity :: (IsString a) => a
-addToWorkoutIntensity = "intensity"
-
-newSorenessMuscle :: (IsString a) => a
-newSorenessMuscle = "muscle"
-
-newSorenessHowSore :: (IsString a) => a
-newSorenessHowSore = "how-sore"
-
-anchorSorenessOutput :: (IsString a) => a
-anchorSorenessOutput = "soreness-output"
 
 idCurrentWorkout :: HtmlId
 idCurrentWorkout = HtmlId "current-workout"
@@ -184,26 +154,24 @@ sorenessInputAndOutput database = do
   L.h1_ do
     iconHtml "graph-down-arrow"
     L.span_ "Soreness"
-  L.form_ [L.class_ "row"] do
+  L.form_ [L.class_ "row", L.action_ "/update-soreness", L.method_ "post"] do
     L.div_ [L.class_ "col"] do
       L.div_ [L.class_ "form-floating"] do
         let muscleOption :: Muscle -> L.Html ()
             muscleOption muscle' = L.option_ [L.value_ (packShow muscle')] (L.toHtml (packShow muscle'))
-        L.select_ [L.class_ "form-select", L.id_ "i-am-sore", L.name_ newSorenessMuscle] (mapM_ muscleOption allMuscles)
+        L.select_ [L.class_ "form-select", L.id_ "i-am-sore", L.name_ "muscle"] (mapM_ muscleOption allMuscles)
         L.label_ [L.for_ "i-am-sore"] "I am sore here"
     L.div_ [L.class_ "col"] do
       L.div_ [L.class_ "form-check form-check-inline"] do
-        L.input_ [L.class_ "form-check-input", L.type_ "radio", L.name_ newSorenessHowSore, L.id_ "verysore", L.value_ (packShow VerySore), L.checked_]
+        L.input_ [L.class_ "form-check-input", L.type_ "radio", L.name_ "how-sore", L.id_ "verysore", L.value_ (packShow VerySore), L.checked_]
         L.label_ [L.class_ "form-check-label", L.for_ "verysore"] (L.toHtml $ sorenessValueToEmoji VerySore <> " VERY")
       L.div_ [L.class_ "form-check form-check-inline"] do
-        L.input_ [L.class_ "form-check-input", L.type_ "radio", L.name_ newSorenessHowSore, L.id_ "alittle", L.value_ (packShow LittleSore)]
+        L.input_ [L.class_ "form-check-input", L.type_ "radio", L.name_ "how-sore", L.id_ "alittle", L.value_ (packShow LittleSore)]
         L.label_ [L.class_ "form-check-label", L.for_ "alittle"] (L.toHtml $ sorenessValueToEmoji LittleSore <> " A LITTLE")
     L.div_ [L.class_ "col"] do
       L.button_
         [ L.class_ "btn btn-primary",
-          L.type_ "submit",
-          LX.hxPost_ urlNewSoreness,
-          LX.hxTarget_ ("#" <> anchorSorenessOutput)
+          L.type_ "submit"
         ]
         "Submit"
   sorenessOutput database
@@ -215,9 +183,6 @@ dayDiffText currentTime before =
         0 -> "today"
         1 -> "yesterday"
         n -> packShow n <> " days ago"
-
-urlCommitWorkout :: (IsString a) => a
-urlCommitWorkout = "/partials/commit-workout"
 
 currentWorkoutHtml :: Database -> L.Html ()
 currentWorkoutHtml database =
@@ -275,22 +240,21 @@ currentWorkoutHtml database =
               L.h6_ [L.class_ "card-subtitle"] (L.toHtml (intensityToText exWithIn.intensity))
               L.p_ [L.class_ "card-text"] do
                 L.toHtmlRaw $ commonmarkToHtml [] [] exWithIn.exercise.description
-                L.button_
-                  [ LX.hxPost_ ("/" <> urlRemoveFromWorkout <> "?exercise-name=" <> packShow exWithIn.exercise.name),
-                    makeTarget idCurrentWorkout,
-                    L.type_ "button",
-                    L.class_ "btn btn-secondary"
-                  ]
-                  do
-                    iconHtml "trash"
-                    L.span_ "Don't use"
+                L.form_ [L.action_ "/toggle-exercise-in-workout", L.method_ "post"] do
+                  L.input_ [L.type_ "hidden", L.name_ "return-to-current", L.value_ (packShow True)]
+                  L.input_ [L.type_ "hidden", L.name_ "exercise-name", L.value_ (packShow exWithIn.exercise.name)]
+                  L.button_
+                    [ L.type_ "submit",
+                      L.class_ "btn btn-secondary"
+                    ]
+                    do
+                      iconHtml "trash"
+                      L.span_ "Don't use"
 
-        L.form_ do
+        L.form_ [L.action_ "/commit-workout", L.method_ "post"] do
           L.button_
             [ L.type_ "submit",
-              L.class_ "btn btn-primary",
-              LX.hxPost_ urlCommitWorkout,
-              makeTarget idCurrentWorkout
+              L.class_ "btn btn-primary"
             ]
             do
               iconHtml "send"
@@ -362,10 +326,10 @@ trainingHtml currentTime database category' = do
                  in dayDiffText currentTime lastExecutionInstance.time <> case firstSorenessBetweenExecutions of
                       Nothing -> ", no soreness"
                       Just lastSoreness -> ", soreness: " <> sorenessValueToEmoji lastSoreness.soreness
-        L.form_ do
+        L.form_ [L.method_ "post", L.action_ "/toggle-exercise-in-workout"] do
           L.input_
             [ L.type_ "hidden",
-              L.name_ addToWorkoutExerciseName,
+              L.name_ "exercise-name",
               L.value_ (packShow exerciseToOutput.name)
             ]
           L.h5_ do
@@ -375,7 +339,7 @@ trainingHtml currentTime database category' = do
           if partOfCurrentWorkout
             then L.button_
               [ L.class_ "btn btn-secondary btn-sm",
-                LX.hxPost_ ("/" <> urlRemoveFromWorkout <> "?exercise-name=" <> packShow exerciseToOutput.name)
+                L.type_ "submit"
               ]
               do
                 iconHtml "trash"
@@ -384,10 +348,8 @@ trainingHtml currentTime database category' = do
               L.p_ [L.class_ "text-muted"] (L.toHtml $ "Last: " <> pastTimeReadable)
               L.div_ [L.class_ "input-group mb-3"] do
                 L.button_
-                  [ L.type_ "button",
-                    LX.hxPost_ urlAddToWorkout,
-                    L.class_ "btn btn-sm btn-primary",
-                    makeTarget idCurrentWorkout
+                  [ L.type_ "submit",
+                    L.class_ "btn btn-sm btn-primary"
                   ]
                   do
                     iconHtml "journal-plus"
@@ -395,17 +357,10 @@ trainingHtml currentTime database category' = do
                 L.input_
                   [ L.class_ "form-control",
                     L.value_ (maybe "" (intensityToText . (.intensity)) lastExecutionOfThisExercise),
-                    L.name_ addToWorkoutIntensity,
+                    L.name_ "intensity",
                     L.type_ "text",
                     L.placeholder_ "Enter intensity here"
                   ]
-              L.button_
-                [ L.class_ "btn btn-info",
-                  L.type_ "button btn-sm",
-                  LX.hxGet_ ("/partials/exercise-description/" <> packShow exerciseToOutput.name),
-                  LX.hxSwap_ SwapOuterHtml
-                ]
-                "Show details"
               L.hr_ []
 
       muscleToTrainingHtml :: Muscle -> L.Html ()
@@ -419,12 +374,6 @@ trainingHtml currentTime database category' = do
               L.div_ [L.class_ "text-bg-light p-3 border rounded"] $ forM_ exercisesForThisMuscle (outputExercise muscle')
 
   mapM_ muscleToTrainingHtml allMuscles
-
-urlNewExerciseCancel :: (IsString a) => a
-urlNewExerciseCancel = "/partial/new-exercise-cancel"
-
-urlNewExerciseSubmit :: (IsString a) => a
-urlNewExerciseSubmit = "/partial/new-exercise-submit"
 
 exerciseFormMusclesParam :: (IsString a) => a
 exerciseFormMusclesParam = "muscles"
@@ -444,16 +393,21 @@ exerciseFormDescriptionParam = "description"
 idExerciseForm :: HtmlId
 idExerciseForm = HtmlId "new-exercise-form"
 
-exerciseFormHtml :: ExerciseName -> Category -> [Muscle] -> [FileReference] -> Text -> L.Html ()
-exerciseFormHtml editName editCategory editMuscles fileRefs description' =
-  L.form_ [LX.hxEncoding_ "multipart/form-data"] do
+exerciseFormHtml :: Exercise -> L.Html ()
+exerciseFormHtml (Exercise {name, category, muscles, fileReferences, description}) =
+  L.form_ [L.enctype_ "multipart/form-data", L.method_ "post", L.action_ "/edit-exercise"] do
+    L.input_
+      [ L.type_ "hidden",
+        L.name_ "original-exercise-name",
+        L.value_ (packShow name)
+      ]
     L.div_ [L.class_ "form-floating mb-3"] do
       L.input_
         [ L.class_ "form-control",
           L.id_ "exercise-name",
           L.type_ "text",
           L.name_ exerciseFormNameParam,
-          L.value_ (packShow editName)
+          L.value_ (packShow name)
         ]
       L.label_ [L.for_ "exercise-name"] "Name"
 
@@ -464,7 +418,7 @@ exerciseFormHtml editName editCategory editMuscles fileRefs description' =
           L.id_ ("category-" <> htmlIdFromText (packShow category')),
           L.type_ "radio",
           L.name_ exerciseFormCategoryParam,
-          if category' == editCategory then L.checked_ else mempty,
+          if category' == category then L.checked_ else mempty,
           L.value_ (packShow category')
         ]
       L.label_
@@ -480,7 +434,7 @@ exerciseFormHtml editName editCategory editMuscles fileRefs description' =
           L.type_ "checkbox",
           L.name_ exerciseFormMusclesParam,
           L.value_ (packShow muscle'),
-          if muscle' `elem` editMuscles then L.checked_ else mempty
+          if muscle' `elem` muscles then L.checked_ else mempty
         ]
       L.label_
         [L.for_ ("muscle-" <> packShow muscle'), L.class_ "btn btn-outline-secondary me-2"]
@@ -492,10 +446,10 @@ exerciseFormHtml editName editCategory editMuscles fileRefs description' =
         L.placeholder_ "Description",
         L.name_ exerciseFormDescriptionParam
       ]
-      (L.toHtml description')
+      (L.toHtml description)
 
     L.h5_ "Attached files"
-    forM_ fileRefs \(FileReference fileRef) -> do
+    forM_ fileReferences \(FileReference fileRef) -> do
       L.div_ [L.class_ "d-flex flex-row mb-3 align-items-center justify-content-evenly"] do
         L.div_ do
           L.div_ [L.class_ "form-check"] do
@@ -509,37 +463,39 @@ exerciseFormHtml editName editCategory editMuscles fileRefs description' =
             L.label_ [L.class_ "form-check-label", L.for_ ("delete-" <> fileRef)] "Delete this"
         L.div_ (exerciseImageHtml (FileReference fileRef))
 
-    L.div_ do
+    L.div_ [L.class_ "mb-3"] do
       L.label_ [L.for_ "file-upload", L.class_ "form-label"] "Files to attach"
       L.input_ [L.class_ "form-control", L.type_ "file", L.multiple_ "true", L.id_ "file-upload", L.name_ "attached-files"]
 
     L.div_ [L.class_ "hstack gap-3"] do
       L.button_
         [ L.type_ "submit",
-          L.class_ "btn btn-primary",
-          LX.hxPost_ urlNewExerciseSubmit,
-          LX.hxTarget_ ("#" <> idTopLevelContainer)
+          L.class_ "btn btn-primary"
         ]
         "Submit"
       L.button_
         [ L.type_ "submit",
           L.class_ "btn btn-outline-warning",
-          LX.hxPost_ urlNewExerciseCancel,
-          makeTarget idExerciseForm
+          L.formaction_ "/exercises",
+          L.formmethod_ "get"
         ]
         "Cancel edit"
 
 newExerciseButtonHtml :: L.Html ()
 newExerciseButtonHtml =
-  L.button_
-    [ L.type_ "submit",
-      L.class_ "btn btn-primary",
-      LX.hxPost_ urlNewExercise,
-      makeTarget idExerciseForm
-    ]
-    do
-      iconHtml "plus-lg"
-      L.span_ "New exercise"
+  L.form_ [L.action_ "/exercises"] do
+    L.input_
+      [ L.type_ "hidden",
+        L.name_ "with-form",
+        L.value_ (packShow True)
+      ]
+    L.button_
+      [ L.type_ "submit",
+        L.class_ "btn btn-primary"
+      ]
+      do
+        iconHtml "plus-lg"
+        L.span_ "New exercise"
 
 exerciseImageHtml :: FileReference -> L.Html ()
 exerciseImageHtml (FileReference fileRef) = L.figure_ [L.class_ "figure"] $ L.img_ [L.src_ ("/" <> pack uploadedFileDir <> "/" <> fileRef), L.class_ "figure-img img-fluid rounded"]
@@ -549,22 +505,23 @@ exerciseDescriptionHtml e = do
   L.toHtmlRaw $ commonmarkToHtml [] [] e.description
   forM_ e.fileReferences exerciseImageHtml
 
-exercisesHtml :: Database -> L.Html ()
-exercisesHtml db = do
-  L.div_ [makeId idExerciseForm, L.class_ "mb-3"] newExerciseButtonHtml
+exercisesHtml :: Database -> Maybe Exercise -> L.Html ()
+exercisesHtml db existingExercise = do
+  L.div_ [makeId idExerciseForm, L.class_ "mb-3"] do
+    maybe newExerciseButtonHtml exerciseFormHtml existingExercise
   L.hr_ []
   L.h2_ do
     iconHtml "box2-heart"
     L.span_ "Exercise Descriptions"
   forM_ db.exercises \exercise' -> do
     L.h3_ [L.id_ ("description-" <> htmlIdFromText (packShow exercise'.name))] do
-      L.button_
-        [ L.class_ "btn btn-sm btn-secondary me-2",
-          LX.hxGet_
-            ("/partial/edit-exercise/" <> packShow exercise'.name),
-          makeTarget idExerciseForm
-        ]
-        (iconHtml' "pencil-square")
+      L.form_ [L.action_ "/exercises"] do
+        L.input_ [L.type_ "hidden", L.name_ "edit-exercise", L.value_ (packShow exercise'.name)]
+        L.button_
+          [ L.class_ "btn btn-sm btn-secondary me-2",
+            L.type_ "submit"
+          ]
+          (iconHtml' "pencil-square")
       L.toHtml (packShow exercise'.name)
     L.div_ [L.class_ "hstack gap-1 mb-3"] do
       L.span_ [L.class_ "badge text-bg-dark"] (L.toHtml $ packShow exercise'.category)
@@ -573,16 +530,20 @@ exercisesHtml db = do
 
 data CurrentPage
   = PageCurrent
-  | PageStrength
-  | PageStretch
-  | PageEndurance
-  | PageMobility
+  | PageExerciseList !Category
   | PageExercises
-  deriving (Eq)
+  deriving (Eq, Show, Read)
+
+pageToPath :: CurrentPage -> Text
+pageToPath PageCurrent = "/"
+pageToPath PageExercises = "/exercises"
+pageToPath (PageExerciseList category') = "/training/" <> packShow category'
+
+instance Parsable CurrentPage where
+  parseParam = readEither
 
 data PageDescription = PageDescription
   { enum :: !CurrentPage,
-    url :: !Text,
     icon :: !Text,
     description :: !Text
   }
@@ -590,20 +551,20 @@ data PageDescription = PageDescription
 headerHtml :: CurrentPage -> L.Html ()
 headerHtml currentPage =
   let exerciseLists =
-        [ PageDescription PageStrength "training/strength" "hammer" "Strength",
-          PageDescription PageEndurance "training/endurance" "person-walking" "Endurance",
-          PageDescription PageStretch "training/stretch" "rulers" "Stretch",
-          PageDescription PageMobility "training/mobility" "airplane" "Mobility"
+        [ PageDescription (PageExerciseList Strength) "hammer" "Strength",
+          PageDescription (PageExerciseList Endurance) "person-walking" "Endurance",
+          PageDescription (PageExerciseList Stretch) "rulers" "Stretch",
+          PageDescription (PageExerciseList Mobility) "airplane" "Mobility"
         ]
       otherPages =
-        [ PageDescription PageCurrent "" "graph-down-arrow" "Current",
-          PageDescription PageExercises "exercises" "box2-heart" "Exercises"
+        [ PageDescription PageCurrent "graph-down-arrow" "Current",
+          PageDescription PageExercises "box2-heart" "Exercises"
         ]
       makeItem :: PageDescription -> L.Html ()
       makeItem pd =
         L.li_ [L.class_ "nav-item"] do
           L.a_
-            [ L.href_ ("/" <> pd.url),
+            [ L.href_ (pageToPath pd.enum),
               L.class_ "nav-link",
               if currentPage == pd.enum then L.class_ "active" else mempty
             ]
@@ -616,9 +577,6 @@ headerHtml currentPage =
 
 uploadedFileDir :: FilePath
 uploadedFileDir = "uploaded-files"
-
-urlRemoveFromWorkout :: (IsString a) => a
-urlRemoveFromWorkout = "/reset-current-workout"
 
 uploadSingleFile :: (MonadIO m) => File -> m FileReference
 uploadSingleFile (_, fileInfo) = do
@@ -635,51 +593,71 @@ paramValues desiredParamName =
     (\(paramName, paramValue) -> if paramName == desiredParamName then Just paramValue else Nothing)
     <$> formParams
 
+pageCurrentHtml :: Database -> L.Html ()
+pageCurrentHtml db = htmlSkeleton PageCurrent $ do
+  currentWorkoutHtml db
+  L.hr_ [L.class_ "mb-3"]
+  sorenessInputAndOutput db
+
 main :: IO ()
 main = scotty 3000 do
-  post urlNewSoreness do
-    muscle' <- formParam newSorenessMuscle
-    howSore' <- formParam newSorenessHowSore
+  get "/" do
+    db <- readDatabase
+    html $ renderText $ pageCurrentHtml db
 
+  get "/exercises" do
+    db <- readDatabase
+    withForm <- queryParamMaybe "with-form"
+    editExercise <- queryParamMaybe "edit-exercise"
+    case editExercise of
+      Nothing ->
+        html $
+          renderText $
+            htmlSkeleton PageExercises $
+              exercisesHtml
+                db
+                ( if withForm == Just True
+                    then
+                      Just
+                        Exercise
+                          { muscles = NE.singleton Pecs,
+                            category = Strength,
+                            description = "",
+                            name = ExerciseName "",
+                            fileReferences = []
+                          }
+                    else Nothing
+                )
+      Just editExercise' ->
+        case find (\e -> e.name == editExercise') db.exercises of
+          Nothing -> do
+            status status400
+            finish
+          Just exerciseFound ->
+            html $
+              renderText $
+                htmlSkeleton PageExercises $
+                  exercisesHtml
+                    db
+                    (Just exerciseFound)
+
+  get (capture "/training/:training-type") do
+    db <- readDatabase
     currentTime <- liftIO getCurrentTime
+    trainingType <- pathParam "training-type"
+    html $ renderText $ htmlSkeleton (PageExerciseList trainingType) $ do
+      L.hr_ [L.class_ "mb-3"]
+      trainingHtml currentTime db trainingType
 
-    db <-
-      modifyDb
-        ( \db ->
-            db
-              { sorenessHistory =
-                  Soreness
-                    { time = currentTime,
-                      muscle = muscle',
-                      soreness = howSore'
-                    }
-                    : db.sorenessHistory
-              }
-        )
+  get "/uploaded-files/:fn" do
+    fileName <- pathParam "fn"
+    file (uploadedFileDir <> "/" <> fileName)
 
-    html $ renderText $ sorenessOutput db
-  post "/reset-soreness" do
-    muscle' <- formParam "muscle"
-
-    currentTime <- liftIO getCurrentTime
-
-    db <-
-      modifyDb
-        ( \db ->
-            db
-              { sorenessHistory =
-                  Soreness
-                    { time = currentTime,
-                      muscle = muscle',
-                      soreness = NotSore
-                    }
-                    : db.sorenessHistory
-              }
-        )
-
-    html $ renderText $ sorenessOutput db
-  post urlNewExerciseSubmit do
-    uploadedFiles <- files
+  post "/edit-exercise" do
+    originalExerciseName <- formParam "original-exercise-name"
+    -- Very very weird behavior - why is there always at least one file, with not even an empty
+    -- file name but ""?
+    uploadedFiles <- filter (\(_, fileData) -> fileName fileData /= "\"\"") <$> files
     writtenFiles <- traverse uploadSingleFile uploadedFiles
     musclesRaw <- paramValues exerciseFormMusclesParam
     case traverse (parseParam . TL.fromStrict) musclesRaw of
@@ -697,8 +675,8 @@ main = scotty 3000 do
             name' <- formParam exerciseFormNameParam
             toDelete <- paramValues exerciseFormFilesToDeleteParam
             forM_ toDelete (liftIO . removeFile . unpack . (\fn -> pack uploadedFileDir <> "/" <> fn))
-            newDb <- modifyDb \db ->
-              let existingExercise = find (\e -> e.name == name') db.exercises
+            modifyDb' \db ->
+              let existingExercise = find (\e -> e.name == originalExerciseName) db.exercises
                in db
                     { exercises =
                         -- Add a new one
@@ -717,114 +695,88 @@ main = scotty 3000 do
                           -- ...and filter out the existing one
                           : filter (\e -> e.name /= name') db.exercises
                     }
-            html $ renderText $ exercisesHtml newDb
+            redirect "/exercises"
 
-  post urlNewExerciseCancel do
-    html $ renderText newExerciseButtonHtml
-
-  get "/partial/edit-exercise/:exercise-name" do
-    readDb <- readDatabase
-    exerciseName <- pathParam "exercise-name"
-    case find (\e -> e.name == exerciseName) readDb.exercises of
-      Nothing -> do
-        status status400
-        finish
-      Just exercise' -> do
-        html $ renderText $ exerciseFormHtml exercise'.name exercise'.category (NE.toList exercise'.muscles) exercise'.fileReferences exercise'.description
-
-  post urlNewExercise do
-    html $ renderText $ exerciseFormHtml (ExerciseName "") Strength [] [] ""
-
-  post urlAddToWorkout do
-    exerciseName :: ExerciseName <- formParam addToWorkoutExerciseName
-    intensity' :: Intensity <- formParam addToWorkoutIntensity
+  post "/toggle-exercise-in-workout" do
+    exerciseName <- formParam "exercise-name"
     currentTime <- liftIO getCurrentTime
     readDb <- readDatabase
+
     case find (\e -> e.name == exerciseName) readDb.exercises of
       Nothing -> do
         status status400
         finish
       Just exercise' -> do
-        db' <-
-          modifyDb
-            ( \db ->
-                db
-                  { currentTraining =
-                      ExerciseWithIntensity
-                        { exercise = exercise',
-                          intensity = intensity',
-                          time = currentTime
-                        }
-                        : db.currentTraining
+        case find (\ewi -> ewi.exercise.name == exerciseName) readDb.currentTraining of
+          Nothing -> do
+            intensity' <- formParam "intensity"
+            modifyDb'
+              ( \db ->
+                  db
+                    { currentTraining =
+                        ExerciseWithIntensity
+                          { exercise = exercise',
+                            intensity = intensity',
+                            time = currentTime
+                          }
+                          : db.currentTraining
+                    }
+              )
+          Just _ -> do
+            modifyDb'
+              ( \db ->
+                  db
+                    { currentTraining =
+                        filter (\ewi -> ewi.exercise.name /= exerciseName) db.currentTraining
+                    }
+              )
+        returnToCurrent :: Maybe Bool <- formParamMaybe "return-to-current"
+        redirect case returnToCurrent of
+          Nothing ->
+            TL.fromStrict $ "/training/" <> packShow exercise'.category
+          Just _ -> "/"
+
+  post "/update-soreness" do
+    muscle' <- formParam "muscle"
+    howSore' <- formParam "how-sore"
+
+    currentTime <- liftIO getCurrentTime
+
+    modifyDb'
+      ( \db ->
+          db
+            { sorenessHistory =
+                Soreness
+                  { time = currentTime,
+                    muscle = muscle',
+                    soreness = howSore'
                   }
-            )
-        html $ renderText $ currentWorkoutHtml db'
+                  : db.sorenessHistory
+            }
+      )
 
-  post urlCommitWorkout do
-    newDb <- modifyDb \db ->
-      db {currentTraining = [], pastExercises = db.currentTraining <> db.pastExercises}
-    html $ renderText $ currentWorkoutHtml newDb
+    redirect "/"
 
-  post urlRemoveFromWorkout do
-    exercise' :: ExerciseName <- formParam "exercise-name"
-    db <-
-      modifyDb
-        ( \db ->
-            db
-              { currentTraining =
-                  filter (\exWithIn -> exWithIn.exercise.name /= exercise') db.currentTraining
-              }
-        )
-    html $ renderText $ currentWorkoutHtml db
+  post "/reset-soreness" do
+    muscle' <- formParam "muscle"
 
-  get "/partials/exercise-description/:name" do
-    exerciseName <- pathParam "name"
-    readDb <- readDatabase
-    case find (\e -> e.name == exerciseName) readDb.exercises of
-      Nothing -> do
-        status status400
-        finish
-      Just e -> html $ renderText $ exerciseDescriptionHtml e
-
-  get "/exercises" do
-    db <- readDatabase
-    html $ renderText $ htmlSkeleton PageExercises $ exercisesHtml db
-
-  get "/training/strength" do
-    db <- readDatabase
     currentTime <- liftIO getCurrentTime
-    html $ renderText $ htmlSkeleton PageStrength $ do
-      L.hr_ [L.class_ "mb-3"]
-      trainingHtml currentTime db Strength
 
-  get "/training/stretch" do
-    db <- readDatabase
-    currentTime <- liftIO getCurrentTime
-    html $ renderText $ htmlSkeleton PageStretch $ do
-      L.hr_ [L.class_ "mb-3"]
-      trainingHtml currentTime db Stretch
+    modifyDb'
+      ( \db ->
+          db
+            { sorenessHistory =
+                Soreness
+                  { time = currentTime,
+                    muscle = muscle',
+                    soreness = NotSore
+                  }
+                  : db.sorenessHistory
+            }
+      )
 
-  get "/training/mobility" do
-    db <- readDatabase
-    currentTime <- liftIO getCurrentTime
-    html $ renderText $ htmlSkeleton PageMobility $ do
-      L.hr_ [L.class_ "mb-3"]
-      trainingHtml currentTime db Mobility
+    redirect "/"
 
-  get "/training/endurance" do
-    db <- readDatabase
-    currentTime <- liftIO getCurrentTime
-    html $ renderText $ htmlSkeleton PageEndurance $ do
-      L.hr_ [L.class_ "mb-3"]
-      trainingHtml currentTime db Endurance
-
-  get "/" do
-    db <- readDatabase
-    html $ renderText $ htmlSkeleton PageCurrent $ do
-      currentWorkoutHtml db
-      L.hr_ [L.class_ "mb-3"]
-      sorenessInputAndOutput db
-
-  get "/uploaded-files/:fn" do
-    fileName <- pathParam "fn"
-    file (uploadedFileDir <> "/" <> fileName)
+  post "/commit-workout" do
+    modifyDb' \db -> db {currentTraining = [], pastExercises = db.currentTraining <> db.pastExercises}
+    redirect "/"

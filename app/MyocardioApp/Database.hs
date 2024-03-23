@@ -23,14 +23,16 @@ module MyocardioApp.Database
     exercisesByName,
     readDatabase,
     modifyDb,
+    modifyDb',
   )
 where
 
+import Control.Monad (void)
 import Control.Monad.IO.Class (MonadIO (liftIO))
 import Data.Aeson (FromJSON, ToJSON, eitherDecodeFileStrict, encodeFile)
 import Data.Bool (not)
 import Data.Foldable (Foldable)
-import Data.Function (($))
+import Data.Function (($), (.))
 import Data.Functor (Functor, (<$>))
 import Data.List (sortBy)
 import qualified Data.List.NonEmpty as NE
@@ -249,3 +251,6 @@ modifyDb f = do
   db <- readDatabase
   writeDatabase (f db)
   pure (f db)
+
+modifyDb' :: (MonadIO m) => (Database -> Database) -> m ()
+modifyDb' = void . modifyDb
