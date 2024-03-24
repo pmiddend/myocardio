@@ -9,7 +9,7 @@ module Main (main) where
 
 import CMarkGFM (commonmarkToHtml)
 import Control.Applicative (Applicative (pure))
-import Control.Monad (when, (>>=))
+import Control.Monad (unless, when, (>>=))
 import Control.Monad.IO.Class (MonadIO (liftIO))
 import Crypto.Hash.SHA256 (hashlazy)
 import Data.Bool (Bool (True), (&&))
@@ -20,17 +20,18 @@ import Data.Foldable (Foldable (elem), find, forM_, mapM_, notElem)
 import Data.Function (($), (.))
 import Data.Functor ((<$>))
 import Data.Int (Int)
-import Data.List (filter, zip)
+import Data.List (filter, reverse, sortBy, zip)
 import qualified Data.List.NonEmpty as NE
-import Data.Maybe (Maybe (Just, Nothing), isJust, isNothing, mapMaybe, maybe)
+import Data.Maybe (Maybe (Just, Nothing), fromMaybe, isJust, isNothing, mapMaybe, maybe)
 import Data.Monoid (Monoid (mempty))
 import Data.Ord (Ord ((<), (>)), comparing)
 import Data.Semigroup (Semigroup ((<>)))
 import qualified Data.Set as Set
 import Data.String (IsString)
-import Data.Text (Text, pack, replace, toLower, unpack)
+import Data.Text (Text, pack, replace, unpack)
 import qualified Data.Text.Encoding as TE
 import qualified Data.Text.Lazy as TL
+import Data.Time (Day (ModifiedJulianDay))
 import Data.Time.Clock (UTCTime (utctDay, utctDayTime), diffUTCTime, getCurrentTime, nominalDay)
 import Lucid (renderText)
 import qualified Lucid as L
@@ -154,21 +155,19 @@ sorenessInputAndOutput database = do
   L.h1_ do
     iconHtml "graph-down-arrow"
     L.span_ "Soreness"
-  L.form_ [L.class_ "row", L.action_ "/update-soreness", L.method_ "post"] do
-    L.div_ [L.class_ "col"] do
+  L.form_ [L.action_ "/update-soreness", L.method_ "post"] do
+    L.div_ [L.class_ "mb-2"] do
       L.div_ [L.class_ "form-floating"] do
         let muscleOption :: Muscle -> L.Html ()
             muscleOption muscle' = L.option_ [L.value_ (packShow muscle')] (L.toHtml (packShow muscle'))
         L.select_ [L.class_ "form-select", L.id_ "i-am-sore", L.name_ "muscle"] (mapM_ muscleOption allMuscles)
         L.label_ [L.for_ "i-am-sore"] "I am sore here"
-    L.div_ [L.class_ "col"] do
-      L.div_ [L.class_ "form-check form-check-inline"] do
-        L.input_ [L.class_ "form-check-input", L.type_ "radio", L.name_ "how-sore", L.id_ "verysore", L.value_ (packShow VerySore), L.checked_]
-        L.label_ [L.class_ "form-check-label", L.for_ "verysore"] (L.toHtml $ sorenessValueToEmoji VerySore <> " VERY")
-      L.div_ [L.class_ "form-check form-check-inline"] do
-        L.input_ [L.class_ "form-check-input", L.type_ "radio", L.name_ "how-sore", L.id_ "alittle", L.value_ (packShow LittleSore)]
-        L.label_ [L.class_ "form-check-label", L.for_ "alittle"] (L.toHtml $ sorenessValueToEmoji LittleSore <> " A LITTLE")
-    L.div_ [L.class_ "col"] do
+    L.div_ [L.class_ "d-flex justify-content-evenly align-items-center mb-2"] do
+      L.input_ [L.class_ "btn-check", L.type_ "radio", L.name_ "how-sore", L.id_ "verysore", L.value_ (packShow VerySore), L.checked_]
+      L.label_ [L.class_ "btn", L.for_ "verysore"] (L.toHtml $ sorenessValueToEmoji VerySore <> " VERY")
+      L.input_ [L.class_ "btn-check", L.type_ "radio", L.name_ "how-sore", L.id_ "alittle", L.value_ (packShow LittleSore)]
+      L.label_ [L.class_ "btn", L.for_ "alittle"] (L.toHtml $ sorenessValueToEmoji LittleSore <> " A LITTLE")
+    L.div_ [L.class_ "d-flex justify-content-center"] do
       L.button_
         [ L.class_ "btn btn-primary",
           L.type_ "submit"
@@ -190,9 +189,6 @@ currentWorkoutHtml database =
     case database.currentTraining of
       [] -> mempty
       currentExercises -> do
-        L.a_ [L.href_ "#exercise-list", L.class_ "icon-link mb-2"] do
-          "Go to exercise list"
-          iconHtml "arrow-right"
         L.h1_ do
           iconHtml "joystick"
           L.span_ "Current Workout"
@@ -249,7 +245,7 @@ currentWorkoutHtml database =
                     ]
                     do
                       iconHtml "trash"
-                      L.span_ "Don't use"
+                      L.span_ "Remove from workout"
 
         L.form_ [L.action_ "/commit-workout", L.method_ "post"] do
           L.button_
@@ -258,16 +254,22 @@ currentWorkoutHtml database =
             ]
             do
               iconHtml "send"
-              L.span_ "Commit"
+              L.span_ "Commit workout"
+
+inCurrentTraining :: Database -> Muscle -> Bool
+inCurrentTraining db muscle =
+  isJust (find (\ewi -> muscle `elem` ewi.exercise.muscles) db.currentTraining)
 
 trainingHtml :: UTCTime -> Database -> Category -> L.Html ()
 trainingHtml currentTime database category' = do
-  L.h1_ [L.id_ "exercise-list"] do
+  L.h1_ do
     iconHtml "hand-thumbs-up"
     L.span_ "Exercise list"
   L.div_ [L.class_ "text-bg-light p-2"] do
     L.ul_ $ forM_ allMuscles \muscle' -> do
-      L.li_ (L.a_ [L.href_ ("#training-section-" <> packShow muscle')] (L.toHtml (packShow muscle')))
+      L.li_ $ L.a_ [L.href_ ("#training-section-" <> packShow muscle')] $ do
+        L.span_ $ L.toHtml (packShow muscle')
+        unless (inCurrentTraining database muscle') (L.sup_ "*")
   let exercisePool = filter (\e -> e.category == category') database.exercises
       exerciseWithIntensityTrainsMuscle :: Muscle -> ExerciseWithIntensity Exercise -> Bool
       exerciseWithIntensityTrainsMuscle muscle' e = muscle' `elem` e.exercise.muscles
@@ -279,18 +281,12 @@ trainingHtml currentTime database category' = do
           Nothing -> L.p_ do
             L.em_ "never trained!"
           Just exWithIntensity ->
-            L.p_
-              [L.class_ "text-muted"]
-              ( L.em_ $
-                  L.toHtml $
-                    "Last training: "
-                      <> dayDiffText currentTime exWithIntensity.time
-                      <> ", "
-                      <> packShow exWithIntensity.exercise.name
-                      <> " ("
-                      <> toLower (packShow exWithIntensity.exercise.category)
-                      <> ")"
-              )
+            L.p_ [L.class_ "text-muted"] do
+              L.em_ $ L.toHtml $ "Last training: " <> dayDiffText currentTime exWithIntensity.time
+              L.br_ []
+              L.span_ $ do
+                L.strong_ $ L.toHtml $ packShow exWithIntensity.exercise.category
+              L.span_ $ L.toHtml $ " (" <> packShow exWithIntensity.exercise.name <> ")"
       exercisesForMuscle :: Muscle -> [Exercise]
       exercisesForMuscle muscle' = filter (\e -> muscle' `elem` e.muscles) exercisePool
       outputExercise :: Muscle -> Exercise -> L.Html ()
@@ -307,7 +303,7 @@ trainingHtml currentTime database category' = do
             partOfCurrentWorkout :: Bool
             partOfCurrentWorkout = isJust (find (\e -> e.exercise.name == exerciseToOutput.name) database.currentTraining)
             pastTimeReadable = case lastExecutionOfThisExercise of
-              Nothing -> "never executed!"
+              Nothing -> L.p_ "Never executed!"
               Just lastExecutionInstance ->
                 let firstSorenessBetweenExecutions :: Maybe Soreness
                     firstSorenessBetweenExecutions =
@@ -323,9 +319,12 @@ trainingHtml currentTime database category' = do
                                   soreness'.time < nextExercise.time
                         )
                         database.sorenessHistory
-                 in dayDiffText currentTime lastExecutionInstance.time <> case firstSorenessBetweenExecutions of
-                      Nothing -> ", no soreness"
-                      Just lastSoreness -> ", soreness: " <> sorenessValueToEmoji lastSoreness.soreness
+                 in do
+                      L.span_ $ L.toHtml $ "Last: " <> dayDiffText currentTime lastExecutionInstance.time
+                      L.br_ []
+                      case firstSorenessBetweenExecutions of
+                        Nothing -> L.span_ "No soreness."
+                        Just lastSoreness -> L.span_ $ L.toHtml $ "Soreness: " <> sorenessValueToEmoji lastSoreness.soreness
         L.form_ [L.method_ "post", L.action_ "/toggle-exercise-in-workout"] do
           L.input_
             [ L.type_ "hidden",
@@ -345,8 +344,15 @@ trainingHtml currentTime database category' = do
                 iconHtml "trash"
                 "Remove from workout"
             else do
-              L.p_ [L.class_ "text-muted"] (L.toHtml $ "Last: " <> pastTimeReadable)
-              L.div_ [L.class_ "input-group mb-3"] do
+              L.div_ [L.class_ "text-muted mb-3"] pastTimeReadable
+              L.div_ [L.class_ "mb-3"] do
+                L.input_
+                  [ L.class_ "form-control mb-1",
+                    L.value_ (maybe "" (intensityToText . (.intensity)) lastExecutionOfThisExercise),
+                    L.name_ "intensity",
+                    L.type_ "text",
+                    L.placeholder_ "Intensity?"
+                  ]
                 L.button_
                   [ L.type_ "submit",
                     L.class_ "btn btn-sm btn-primary"
@@ -354,13 +360,6 @@ trainingHtml currentTime database category' = do
                   do
                     iconHtml "journal-plus"
                     L.span_ "Add to workout"
-                L.input_
-                  [ L.class_ "form-control",
-                    L.value_ (maybe "" (intensityToText . (.intensity)) lastExecutionOfThisExercise),
-                    L.name_ "intensity",
-                    L.type_ "text",
-                    L.placeholder_ "Enter intensity here"
-                  ]
               L.hr_ []
 
       muscleToTrainingHtml :: Muscle -> L.Html ()
@@ -593,17 +592,49 @@ paramValues desiredParamName =
     (\(paramName, paramValue) -> if paramName == desiredParamName then Just paramValue else Nothing)
     <$> formParams
 
-pageCurrentHtml :: Database -> L.Html ()
-pageCurrentHtml db = htmlSkeleton PageCurrent $ do
+exerciseHistoryForCategoryHtml :: UTCTime -> Database -> Category -> L.Html ()
+exerciseHistoryForCategoryHtml currentTime db category =
+  let pastExercisesDescending = reverse (filter (\pe -> pe.exercise.category == category) db.pastExercises)
+      musclesAndLastExercise :: [(Muscle, Maybe UTCTime)]
+      musclesAndLastExercise =
+        ( \muscle ->
+            (muscle, (.time) <$> find (\ewi -> muscle `elem` ewi.exercise.muscles) pastExercisesDescending)
+        )
+          <$> allMuscles
+      -- compare by last execution and let "no execution" be "the beginning of time"
+      musclesAndLastExerciseSorted :: [(Muscle, Maybe UTCTime)]
+      musclesAndLastExerciseSorted =
+        sortBy
+          (comparing (\(_muscle, time) -> fromMaybe (Data.Time.ModifiedJulianDay 0) (utctDay <$> time)))
+          musclesAndLastExercise
+   in L.ol_ [L.class_ "list-group list-group-numbered"] $ forM_ musclesAndLastExerciseSorted \(muscle, lastTime) -> do
+        L.li_ [L.class_ "list-group-item d-flex justify-content-between align-items-start"] do
+          L.div_ [L.class_ "fw-bold"] (L.toHtml $ packShow muscle)
+          case lastTime of
+            Just lastTime' -> L.toHtml $ dayDiffText currentTime lastTime'
+            Nothing -> "never trained!"
+
+exerciseHistoryHtml :: UTCTime -> Database -> L.Html ()
+exerciseHistoryHtml currentTime db = do
+  L.h1_ do
+    iconHtml "clipboard-data-fill"
+    L.span_ "Training state"
+  exerciseHistoryForCategoryHtml currentTime db Strength
+
+pageCurrentHtml :: UTCTime -> Database -> L.Html ()
+pageCurrentHtml currentTime db = htmlSkeleton PageCurrent $ do
   currentWorkoutHtml db
   L.hr_ [L.class_ "mb-3"]
   sorenessInputAndOutput db
+  L.hr_ [L.class_ "mb-3"]
+  exerciseHistoryHtml currentTime db
 
 main :: IO ()
 main = scotty 3000 do
   get "/" do
     db <- readDatabase
-    html $ renderText $ pageCurrentHtml db
+    currentTime <- liftIO getCurrentTime
+    html $ renderText $ pageCurrentHtml currentTime db
 
   get "/exercises" do
     db <- readDatabase
