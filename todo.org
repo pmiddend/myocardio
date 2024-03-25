@@ -79,16 +79,40 @@ CLOCK: [2024-03-23 Sat 14:45]--[2024-03-23 Sat 17:29] =>  2:44
 - [X] soreness
 ** DONE Improve UX of soreness
 CLOSED: [2024-03-24 Sun 08:57]
-** TODO Show missing exercises in TOC
+** DONE Show missing exercises in TOC
+CLOSED: [2024-03-24 Sun 09:34]
 :LOGBOOK:
-CLOCK: [2024-03-24 Sun 08:57]
+CLOCK: [2024-03-24 Sun 08:57]--[2024-03-24 Sun 09:34] =>  0:37
 :END:
+** DONE Deploy to remote server
+CLOSED: [2024-03-24 Sun 11:57]
+** TODO Exercises for tibialis anterior
+** TODO Better Nix deployment
 ** TODO Show history of exercises and soreness (textually for now)
+:LOGBOOK:
+CLOCK: [2024-03-29 Fri 07:50]
+CLOCK: [2024-03-24 Sun 09:34]--[2024-03-24 Sun 11:58] =>  2:24
+:END:
+
+- History in body image?
+  + [X] Base image to Nix deployment process
+    * We need a static image route
+  + [X] Model back image also
+  + [X] Function from svg + (muscle, int) pairs to colored svg
+  + [ ] Color from green to red — how?
+    * HSV from green to red has just yellow as intermediate colors — try that
+      - [ ] hsv to rgb conversion function?
+	+ Or can CSS do it natively?
+  + [ ] Use with last exercise
+  + [ ] Which muscle group do I train more often (relatively plotted again)?
+  + [ ] Think about what to visualize exactly
+    * Currently sore muscles
+    * Map every muscle to scalar value in [0,1], 0 meaning long time no see, 1 recently trained?
+    * Map muscle to soreness somehow?
+** TODO Add breakpoints in exercise choose and current exercises as well
 ** TODO Muscle information (what muscle is where and so on)
 ** TODO Emojis for categories in new exercise form
 ** TODO Favicon
-** TODO Deploy to remote server
-** TODO Add breakpoints in exercise choose and current exercises as well
 ** CANCELLED Next
 CLOSED: [2024-03-23 Sat 17:40]
 - [X] Rebuild everything around "full pages" instead of partial updates

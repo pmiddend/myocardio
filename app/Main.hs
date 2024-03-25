@@ -2,37 +2,45 @@
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE OverloadedRecordDot #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeApplications #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 
 module Main (main) where
 
 import CMarkGFM (commonmarkToHtml)
 import Control.Applicative (Applicative (pure))
+import Control.Lens (Traversal', over, (...))
 import Control.Monad (unless, when, (>>=))
 import Control.Monad.IO.Class (MonadIO (liftIO))
 import Crypto.Hash.SHA256 (hashlazy)
+import Data.Bifunctor (Bifunctor (second))
 import Data.Bool (Bool (True), (&&))
 import qualified Data.ByteString.Base16 as Base16
 import qualified Data.ByteString.Lazy as BSL
+import Data.Default (def)
+import Data.Either (partitionEithers)
 import Data.Eq (Eq ((/=)), (==))
-import Data.Foldable (Foldable (elem), find, forM_, mapM_, notElem)
+import Data.Foldable (Foldable (elem, foldr, null), find, forM_, mapM_, maximumBy, minimumBy, notElem)
 import Data.Function (($), (.))
 import Data.Functor ((<$>))
 import Data.Int (Int)
 import Data.List (filter, reverse, sortBy, zip)
 import qualified Data.List.NonEmpty as NE
+import qualified Data.Map as Map
 import Data.Maybe (Maybe (Just, Nothing), fromMaybe, isJust, isNothing, mapMaybe, maybe)
 import Data.Monoid (Monoid (mempty))
 import Data.Ord (Ord ((<), (>)), comparing)
 import Data.Semigroup (Semigroup ((<>)))
 import qualified Data.Set as Set
-import Data.String (IsString)
-import Data.Text (Text, pack, replace, unpack)
+import Data.String (IsString, String)
+import Data.Text (Text, isPrefixOf, pack, replace, unpack)
 import qualified Data.Text.Encoding as TE
 import qualified Data.Text.Lazy as TL
-import Data.Time (Day (ModifiedJulianDay))
+import Data.Time (Day (ModifiedJulianDay), NominalDiffTime)
 import Data.Time.Clock (UTCTime (utctDay, utctDayTime), diffUTCTime, getCurrentTime, nominalDay)
+import Data.Tuple (snd)
 import Lucid (renderText)
 import qualified Lucid as L
 import Lucid.Base (makeAttributes)
@@ -59,10 +67,13 @@ import Network.HTTP.Types.Status (status400)
 import Network.Wai.Parse (FileInfo (fileContent, fileName))
 import Safe (maximumByMay)
 import System.Directory (createDirectoryIfMissing, removeFile)
+import System.Environment.XDG.BaseDir (getUserDataDir)
 import System.IO (FilePath, IO)
 import Text.Read (Read)
-import Web.Scotty (ActionM, File, Parsable (parseParam, parseParamList), capture, file, files, finish, formParam, formParamMaybe, formParams, get, html, pathParam, post, queryParamMaybe, readEither, redirect, scotty, status)
-import Prelude (Either (Left, Right), Enum (succ), Fractional ((/)), RealFrac (round), Show (show), Traversable (traverse))
+import Text.XML (Document, Name, readFile, renderLBS)
+import Text.XML.Lens (attributeSatisfies, attrs, named, root)
+import Web.Scotty (ActionM, File, Parsable (parseParam, parseParamList), capture, file, files, finish, formParam, formParamMaybe, formParams, get, html, pathParam, post, queryParamMaybe, raw, readEither, redirect, regex, scotty, setHeader, status)
+import Prelude (Double, Either (Left, Right), Enum (succ), Fractional ((/)), Num ((*), (+), (-)), RealFrac (round), Show (show), Traversable (traverse), realToFrac)
 
 instance (Parsable a) => Parsable (NE.NonEmpty a) where
   parseParam v =
@@ -95,11 +106,11 @@ htmlIdFromText = replace " " "_"
 makeId :: HtmlId -> L.Attributes
 makeId (HtmlId i) = L.id_ i
 
+makeHref :: HtmlId -> L.Attributes
+makeHref (HtmlId i) = L.href_ ("#" <> i)
+
 packShow :: (Show a) => a -> Text
 packShow = pack . show
-
-idTopLevelContainer :: HtmlId
-idTopLevelContainer = HtmlId "top-level-container"
 
 htmlSkeleton :: CurrentPage -> L.Html () -> L.Html ()
 htmlSkeleton page content = do
@@ -112,8 +123,9 @@ htmlSkeleton page content = do
       L.link_ [L.href_ "https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css", L.rel_ "stylesheet"]
     L.body_ $ do
       headerHtml page
-      L.div_ [L.class_ "container", makeId idTopLevelContainer] do
-        content
+      L.div_ [L.class_ "container"] do
+        L.main_ do
+          content
       -- Not sure if we need the bootstrap JS, and it must save some bandwidth, so leave it out maybe
       L.script_ [L.src_ "https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"] ("" :: Text)
 
@@ -150,9 +162,15 @@ iconHtml name' = L.i_ [L.class_ ("bi-" <> name' <> " me-2")] mempty
 iconHtml' :: Text -> L.Html ()
 iconHtml' name' = L.i_ [L.class_ ("bi-" <> name')] mempty
 
+idSoreness :: HtmlId
+idSoreness = HtmlId "soreness"
+
+idExerciseHistory :: HtmlId
+idExerciseHistory = HtmlId "exercise-history"
+
 sorenessInputAndOutput :: Database -> L.Html ()
 sorenessInputAndOutput database = do
-  L.h1_ do
+  L.h1_ [makeId idSoreness] do
     iconHtml "graph-down-arrow"
     L.span_ "Soreness"
   L.form_ [L.action_ "/update-soreness", L.method_ "post"] do
@@ -214,7 +232,7 @@ currentWorkoutHtml database =
                       L.div_
                         [ L.class_ "carousel-item" <> if i == (0 :: Int) then L.class_ "active" else mempty
                         ]
-                        $ L.img_ [L.src_ ("/" <> pack uploadedFileDir <> "/" <> fileRef), L.class_ "d-block w-100"]
+                        $ L.img_ [L.src_ ("/uploaded-files/" <> fileRef), L.class_ "d-block w-100"]
                   )
                 L.button_
                   [ L.type_ "button",
@@ -497,7 +515,7 @@ newExerciseButtonHtml =
         L.span_ "New exercise"
 
 exerciseImageHtml :: FileReference -> L.Html ()
-exerciseImageHtml (FileReference fileRef) = L.figure_ [L.class_ "figure"] $ L.img_ [L.src_ ("/" <> pack uploadedFileDir <> "/" <> fileRef), L.class_ "figure-img img-fluid rounded"]
+exerciseImageHtml (FileReference fileRef) = L.figure_ [L.class_ "figure"] $ L.img_ [L.src_ ("/" <> pack "uploaded-files" <> "/" <> fileRef), L.class_ "figure-img img-fluid rounded"]
 
 exerciseDescriptionHtml :: Exercise -> L.Html ()
 exerciseDescriptionHtml e = do
@@ -522,9 +540,9 @@ exercisesHtml db existingExercise = do
           ]
           (iconHtml' "pencil-square")
       L.toHtml (packShow exercise'.name)
-    L.div_ [L.class_ "hstack gap-1 mb-3"] do
-      L.span_ [L.class_ "badge text-bg-dark"] (L.toHtml $ packShow exercise'.category)
-      forM_ exercise'.muscles \muscle' -> L.span_ [L.class_ "badge text-bg-info"] (L.toHtml $ packShow muscle')
+    L.div_ [L.class_ "gap-1 mb-3"] do
+      L.span_ [L.class_ "badge text-bg-dark me-1"] (L.toHtml $ packShow exercise'.category)
+      forM_ exercise'.muscles \muscle' -> L.span_ [L.class_ "badge text-bg-info me-1"] (L.toHtml $ packShow muscle')
     L.div_ [L.class_ "alert alert-light"] (exerciseDescriptionHtml exercise')
 
 data CurrentPage
@@ -574,14 +592,17 @@ headerHtml currentPage =
         L.div_ [L.class_ "d-flex justify-content-center align-items-center"] (L.ul_ [L.class_ "nav nav-pills"] (mapM_ makeItem exerciseLists))
         L.div_ [L.class_ "d-flex justify-content-center align-items-center"] (L.ul_ [L.class_ "nav nav-pills"] (mapM_ makeItem otherPages))
 
-uploadedFileDir :: FilePath
-uploadedFileDir = "uploaded-files"
+getUploadedFileDir :: (MonadIO m) => m FilePath
+getUploadedFileDir = do
+  uploadedFilesBaseDir <- liftIO $ getUserDataDir "myocardio3"
+  pure (uploadedFilesBaseDir <> "/uploaded-files")
 
 uploadSingleFile :: (MonadIO m) => File -> m FileReference
 uploadSingleFile (_, fileInfo) = do
   let fileHashText :: Text
       fileHashText = TE.decodeUtf8 $ Base16.encode (hashlazy (fileContent fileInfo))
   liftIO $ do
+    uploadedFileDir <- getUploadedFileDir
     createDirectoryIfMissing True uploadedFileDir
     BSL.writeFile (uploadedFileDir <> "/" <> unpack fileHashText) (fileContent fileInfo)
   pure (FileReference fileHashText)
@@ -592,49 +613,147 @@ paramValues desiredParamName =
     (\(paramName, paramValue) -> if paramName == desiredParamName then Just paramValue else Nothing)
     <$> formParams
 
-exerciseHistoryForCategoryHtml :: UTCTime -> Database -> Category -> L.Html ()
-exerciseHistoryForCategoryHtml currentTime db category =
-  let pastExercisesDescending = reverse (filter (\pe -> pe.exercise.category == category) db.pastExercises)
-      musclesAndLastExercise :: [(Muscle, Maybe UTCTime)]
+musclesAndLastExerciseSorted :: [ExerciseWithIntensity Exercise] -> [(Muscle, Maybe UTCTime)]
+musclesAndLastExerciseSorted pastExercises =
+  let musclesAndLastExercise :: [(Muscle, Maybe UTCTime)]
       musclesAndLastExercise =
         ( \muscle ->
-            (muscle, (.time) <$> find (\ewi -> muscle `elem` ewi.exercise.muscles) pastExercisesDescending)
+            (muscle, (.time) <$> find (\ewi -> muscle `elem` ewi.exercise.muscles) (reverse pastExercises))
         )
           <$> allMuscles
-      -- compare by last execution and let "no execution" be "the beginning of time"
-      musclesAndLastExerciseSorted :: [(Muscle, Maybe UTCTime)]
-      musclesAndLastExerciseSorted =
-        sortBy
-          (comparing (\(_muscle, time) -> fromMaybe (Data.Time.ModifiedJulianDay 0) (utctDay <$> time)))
-          musclesAndLastExercise
-   in L.ol_ [L.class_ "list-group list-group-numbered"] $ forM_ musclesAndLastExerciseSorted \(muscle, lastTime) -> do
+   in -- compare by last execution and let "no execution" be "the beginning of time"
+      sortBy
+        (comparing (\(_muscle, time) -> fromMaybe (Data.Time.ModifiedJulianDay 0) (utctDay <$> time)))
+        musclesAndLastExercise
+
+exerciseHistoryForCategoryHtml :: UTCTime -> Database -> Category -> L.Html ()
+exerciseHistoryForCategoryHtml currentTime db category =
+  let pastExercises = filter (\pe -> pe.exercise.category == category) db.pastExercises
+   in L.ol_ [L.class_ "list-group list-group-numbered"] $ forM_ (musclesAndLastExerciseSorted pastExercises) \(muscle, lastTime) -> do
         L.li_ [L.class_ "list-group-item d-flex justify-content-between align-items-start"] do
           L.div_ [L.class_ "fw-bold"] (L.toHtml $ packShow muscle)
           case lastTime of
             Just lastTime' -> L.toHtml $ dayDiffText currentTime lastTime'
             Nothing -> "never trained!"
 
-exerciseHistoryHtml :: UTCTime -> Database -> L.Html ()
-exerciseHistoryHtml currentTime db = do
+exerciseHistoryHtml :: UTCTime -> Database -> Category -> L.Html ()
+exerciseHistoryHtml currentTime db category = do
   L.h1_ do
     iconHtml "clipboard-data-fill"
     L.span_ "Training state"
-  exerciseHistoryForCategoryHtml currentTime db Strength
+  L.div_ [L.class_ "row"] do
+    L.div_ [L.class_ "col-6"] do
+      L.h5_ "Front"
+      L.img_ [L.src_ "/muscles/front.svg", L.class_ "img-fluid"]
+    L.div_ [L.class_ "col-6"] do
+      L.h5_ "Back"
+      L.img_ [L.src_ "/muscles/back.svg", L.class_ "img-fluid"]
+  exerciseHistoryForCategoryHtml currentTime db category
 
-pageCurrentHtml :: UTCTime -> Database -> L.Html ()
-pageCurrentHtml currentTime db = htmlSkeleton PageCurrent $ do
+pageCurrentHtml :: UTCTime -> Database -> Category -> L.Html ()
+pageCurrentHtml currentTime db category = htmlSkeleton PageCurrent $ do
+  L.div_ [L.class_ "text-bg-light p-2"] do
+    L.ul_ $ do
+      L.li_ $ L.a_ [makeHref idCurrentWorkout] do
+        iconHtml "joystick"
+        L.span_ "Current Workout"
+      L.li_ $ L.a_ [makeHref idSoreness] do
+        iconHtml "graph-down-arrow"
+        L.span_ "Soreness"
+      L.li_ $ L.a_ [makeHref idExerciseHistory] do
+        iconHtml "clipboard-data-fill"
+        L.span_ "Exercise History"
   currentWorkoutHtml db
   L.hr_ [L.class_ "mb-3"]
   sorenessInputAndOutput db
   L.hr_ [L.class_ "mb-3"]
-  exerciseHistoryHtml currentTime db
+  L.div_ [L.class_ "btn-group mb-3", makeId idExerciseHistory] $ forM_ allCategories \category' ->
+    L.a_
+      [ L.href_ ("/?history-tab=" <> packShow category'),
+        L.class_ "btn",
+        if category == category' then L.class_ "active" else mempty
+      ]
+      (L.toHtml $ packShow category')
+  exerciseHistoryHtml currentTime db category
+
+-- This path is changed by the Nix build to point to $out
+staticBasePath :: FilePath
+staticBasePath = "svgs/"
+
+data MuscleWithWeight = MuscleWithWeight
+  { muscle :: Muscle,
+    weight :: Double
+  }
+
+fromTuple :: (Muscle, Double) -> MuscleWithWeight
+fromTuple (m, w) = MuscleWithWeight m w
+
+muscleLens :: Muscle -> Traversal' Document (Map.Map Name Text)
+muscleLens muscle' = root . named "svg" ... named "path" . attributeSatisfies "id" (isPrefixOf (packShow muscle' <> "-")) . attrs
+
+hsvGreen :: Double
+hsvGreen = 120.0
+
+applyWeight :: MuscleWithWeight -> Document -> Document
+applyWeight (MuscleWithWeight muscle' weight') =
+  over
+    (muscleLens muscle')
+    (Map.insert "style" ("fill:hsl(" <> pack (show (round @Double @Int (weight' * hsvGreen)) <> ", 50%, 50%)")))
+
+generateWeightedSvg :: (MonadIO m) => [MuscleWithWeight] -> String -> m BSL.ByteString
+generateWeightedSvg muscleWeights frontOrBack = do
+  oldDocument <- liftIO $ readFile def (staticBasePath <> "/" <> frontOrBack <> ".svg")
+  pure
+    $ renderLBS
+      def
+    $ foldr applyWeight oldDocument muscleWeights
+
+lerp :: (Fractional a) => a -> a -> a -> a -> a -> a
+lerp x minPre' maxPre' min' max' = (x - minPre') / (maxPre' - minPre') * (max' - min') + min'
 
 main :: IO ()
 main = scotty 3000 do
   get "/" do
     db <- readDatabase
     currentTime <- liftIO getCurrentTime
-    html $ renderText $ pageCurrentHtml currentTime db
+    historyTab <- queryParamMaybe "history-tab"
+    html $ renderText $ pageCurrentHtml currentTime db (fromMaybe Strength historyTab)
+
+  get (regex "/muscles/([^\\.]*).svg") do
+    db <- readDatabase
+    frontOrBack <- pathParam "1"
+    let lastExercises :: [(Muscle, Maybe UTCTime)]
+        lastExercises = musclesAndLastExerciseSorted (filter (\pe -> pe.exercise.category == Strength) db.pastExercises)
+        muscleToCategory :: (Muscle, Maybe UTCTime) -> Either Muscle (Muscle, UTCTime)
+        muscleToCategory (m, Nothing) = Left m
+        muscleToCategory (m, Just t) = Right (m, t)
+        (musclesWithoutTime', musclesWithTime') = partitionEithers (muscleToCategory <$> lastExercises)
+        musclesWithoutTimeZeroed = (`MuscleWithWeight` 0.0) <$> musclesWithoutTime'
+        weightedExercises :: [MuscleWithWeight]
+        weightedExercises =
+          musclesWithoutTimeZeroed <> case NE.nonEmpty musclesWithTime' of
+            Just musclesWithTimeNE ->
+              let minTime :: UTCTime
+                  minTime = snd $ minimumBy (comparing snd) musclesWithTimeNE
+                  maxTime :: UTCTime
+                  maxTime = snd $ maximumBy (comparing snd) musclesWithTimeNE
+                  minMaxSpan :: NominalDiffTime
+                  minMaxSpan = maxTime `diffUTCTime` minTime
+                  lerpMin :: Double
+                  lerpMin =
+                    if null musclesWithoutTime'
+                      then 0.0
+                      else 0.2
+                  lerpTime :: UTCTime -> Double
+                  lerpTime t =
+                    realToFrac ((t `diffUTCTime` minTime) / minMaxSpan) * (1 - lerpMin) + lerpMin
+                  lerped :: NE.NonEmpty MuscleWithWeight
+                  lerped = (fromTuple . second lerpTime <$> musclesWithTimeNE)
+               in NE.toList lerped
+            _noMusclesWithTime -> []
+    setHeader "Content-Type" "image/svg+xml"
+    weightedSvg <- generateWeightedSvg weightedExercises frontOrBack
+    raw weightedSvg
 
   get "/exercises" do
     db <- readDatabase
@@ -682,6 +801,7 @@ main = scotty 3000 do
 
   get "/uploaded-files/:fn" do
     fileName <- pathParam "fn"
+    uploadedFileDir <- getUploadedFileDir
     file (uploadedFileDir <> "/" <> fileName)
 
   post "/edit-exercise" do
@@ -705,6 +825,7 @@ main = scotty 3000 do
             description' <- formParam exerciseFormDescriptionParam
             name' <- formParam exerciseFormNameParam
             toDelete <- paramValues exerciseFormFilesToDeleteParam
+            uploadedFileDir <- getUploadedFileDir
             forM_ toDelete (liftIO . removeFile . unpack . (\fn -> pack uploadedFileDir <> "/" <> fn))
             modifyDb' \db ->
               let existingExercise = find (\e -> e.name == originalExerciseName) db.exercises

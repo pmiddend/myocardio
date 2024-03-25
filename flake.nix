@@ -27,10 +27,14 @@
         in
         {
           packages.${packageName} =
-            haskellPackages.callCabal2nix packageName self
+            (haskellPackages.callCabal2nix packageName self
               {
                 scotty = haskellPackages.scotty_0_21;
-              };
+              }).overrideAttrs (final: prev: {
+              postPatch = ''
+                sed -i -e 's#staticBasePath = .*#staticBasePath = "${placeholder "out"}"#' app/Main.hs
+              '';
+            });
 
           packages.default = self.packages.${system}.${packageName};
 

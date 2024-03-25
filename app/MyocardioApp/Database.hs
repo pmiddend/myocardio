@@ -39,13 +39,15 @@ import qualified Data.List.NonEmpty as NE
 import qualified Data.Map as Map
 import Data.Maybe (Maybe (Just, Nothing))
 import Data.Ord (comparing)
-import Data.Text (Text, unpack)
+import Data.Text (Text, pack, unpack)
+import Data.Text.IO (putStrLn)
 import Data.Time.Clock (UTCTime)
 import Data.Traversable (Traversable (traverse))
 import GHC.Generics (Generic)
 import System.Directory (doesFileExist)
+import System.Environment.XDG.BaseDir (getUserDataFile)
 import System.IO (FilePath)
-import Prelude (Applicative (pure), Bounded, Either (Left, Right), Enum, Eq, Ord, Read, Show (show), enumFromTo, error, maxBound, minBound)
+import Prelude (Applicative (pure), Bounded, Either (Left, Right), Enum, Eq, Ord, Read, Semigroup ((<>)), Show (show), enumFromTo, error, maxBound, minBound)
 
 data Muscle
   = Neck
@@ -65,6 +67,7 @@ data Muscle
   | Quadriceps
   | Hamstrings
   | Calves
+  | TibialisAnterior
   | Ankles
   | Peroneals
   deriving (Show, Eq, Generic, Enum, Bounded, Ord, Read)
@@ -181,27 +184,6 @@ instance (FromJSON a) => FromJSON (DatabaseF a)
 
 instance (ToJSON a) => ToJSON (DatabaseF a)
 
--- exercises :: [Exercise]
--- exercises =
---   [ Exercise
---       { name = ExerciseName "Running",
---         -- source: https://www.onepeloton.com/blog/what-muscles-does-running-work/
---         muscles = Quadriceps NE.:| [Calves, Hamstrings, HipFlexors, GluteusMaximus, GluteusMedius],
---         category = Endurance,
---         description = L.a_ [L.href_ "https://www.youtube.com/watch?v=wBtOd6_L_3M"] "4 Unexpected Reasons People Hate Running"
---       },
---     Exercise
---       { name = ExerciseName "Lunge",
---         muscles = GluteusMaximus NE.:| [Hamstrings, Quadriceps, Calves, Adductors],
---         category = Strength,
---         description = do
---           L.h2_ "Resources"
---           L.ul_ do
---             L.li_ (L.a_ [L.href_ "https://www.nsca.com/contentassets/24dd7222ed1b4caeb8a0a46b81bd11f3/ptq-4.4.9-the-undervalued-lunge.pdf"] "Has some nice tips for correct execution")
---             L.li_ (L.a_ [L.href_ "https://weighttraining.guide/exercises/lunge/"] "This mentions the muscles involved")
---       }
---   ]
-
 exercisesByName :: DatabaseF a -> Map.Map ExerciseName Exercise
 exercisesByName d = Map.fromList ((\e -> (e.name, e)) <$> d.exercises)
 
@@ -211,13 +193,15 @@ instance FromJSON DatabaseWithExerciseNames
 
 instance ToJSON DatabaseWithExerciseNames
 
-dbFile :: FilePath
-dbFile = "myocardio.json"
+getDbFile :: (MonadIO m) => m FilePath
+getDbFile = liftIO $ getUserDataFile "myocardio3" "myocardio.json"
 
 type Database = DatabaseF (ExerciseWithIntensity Exercise)
 
 readDatabase :: (MonadIO m) => m Database
 readDatabase = do
+  dbFile <- getDbFile
+  liftIO $ putStrLn $ "reading from db file " <> pack dbFile
   exists <- liftIO (doesFileExist dbFile)
   if not exists
     then pure emptyDatabase
@@ -244,7 +228,9 @@ writeDatabase :: (MonadIO m) => Database -> m ()
 writeDatabase v =
   let encodeDb :: DatabaseF (ExerciseWithIntensity Exercise) -> DatabaseWithExerciseNames
       encodeDb db = DatabaseWithExerciseNames $ (\exWithIn -> ExerciseNameWithIntensity ((.name) <$> exWithIn)) <$> db
-   in liftIO $ encodeFile dbFile (encodeDb v)
+   in do
+        dbFile <- getDbFile
+        liftIO $ encodeFile dbFile (encodeDb v)
 
 modifyDb :: (MonadIO m) => (Database -> Database) -> m Database
 modifyDb f = do
