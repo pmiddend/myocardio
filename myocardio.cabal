@@ -43,6 +43,12 @@ executable myocardio-exe
     , cryptohash-sha256
     , wai-extra
     , base16-bytestring
+    , xdg-basedir
+    , xml-conduit
+    , xml-lens
+    , data-default
+    , case-insensitive
+    , lens
     , directory
     , bytestring
     , containers
