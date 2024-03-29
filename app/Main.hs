@@ -642,10 +642,10 @@ exerciseHistoryHtml currentTime db category = do
     iconHtml "clipboard-data-fill"
     L.span_ "Training state"
   L.div_ [L.class_ "row"] do
-    L.div_ [L.class_ "col-6"] do
+    L.div_ [L.class_ "col-6 text-center"] do
       L.h5_ "Front"
       L.img_ [L.src_ "/muscles/front.svg", L.class_ "img-fluid"]
-    L.div_ [L.class_ "col-6"] do
+    L.div_ [L.class_ "col-6 text-center"] do
       L.h5_ "Back"
       L.img_ [L.src_ "/muscles/back.svg", L.class_ "img-fluid"]
   exerciseHistoryForCategoryHtml currentTime db category
