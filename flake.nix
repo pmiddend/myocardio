@@ -61,7 +61,7 @@
             };
           devShell = self.devShells.${system}.default;
 
-          nixosModules.myocardio3 = { pkgs, config, lib, ... }:
+          nixosModule = { pkgs, config, lib, ... }:
             {
               options.services.myocardio3 = {
                 enable = lib.mkEnableOption "enable myocardio3";
