@@ -32,11 +32,14 @@
                 scotty = haskellPackages.scotty_0_21;
               }).overrideAttrs (final: prev: {
               postPatch = ''
-                sed -i -e 's#staticBasePath = .*#staticBasePath = "${placeholder "out"}/svgs"#' app/Main.hs
+                sed -i -e 's#staticBasePath = .*#staticBasePath = "${placeholder "out"}/static"#' app/Main.hs
+                sed -i -e 's#svgBasePath = .*#svgBasePath = "${placeholder "out"}/svgs"#' app/Main.hs
               '';
               postInstall = ''
                 mkdir -p $out/svgs
                 cp svgs/{front,back}.svg $out/svgs/
+                mkdir -p $out/static
+                cp static/* $out/static
               '';
             });
 

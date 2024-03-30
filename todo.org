@@ -86,9 +86,8 @@ CLOCK: [2024-03-24 Sun 08:57]--[2024-03-24 Sun 09:34] =>  0:37
 :END:
 ** DONE Deploy to remote server
 CLOSED: [2024-03-24 Sun 11:57]
-** TODO Exercises for tibialis anterior
-** TODO Better Nix deployment
-** TODO Show history of exercises and soreness (textually for now)
+** DONE Show history of exercises in a picture
+CLOSED: [2024-03-30 Sat 08:15]
 :LOGBOOK:
 CLOCK: [2024-03-29 Fri 07:50]--[2024-03-29 Fri 12:13] =>  4:23
 CLOCK: [2024-03-24 Sun 09:34]--[2024-03-24 Sun 11:58] =>  2:24
@@ -112,11 +111,15 @@ CLOCK: [2024-03-24 Sun 09:34]--[2024-03-24 Sun 11:58] =>  2:24
     * take the current day as max time?
     * previously, if last training was 3 days ago, and the one before that 6, then we'd interpolate between 0 and 3 days
     * afterwards we're interpolating between 6 days
-  + [ ] Which muscle group do I train more often (relatively plotted again)?
-  + [ ] Think about what to visualize exactly
-    * Currently sore muscles
-    * Map every muscle to scalar value in [0,1], 0 meaning long time no see, 1 recently trained?
-    * Map muscle to soreness somehow?
+** TODO Exercises for tibialis anterior
+** TODO Show soreness history per muscle group
+** TODO Better Nix deployment
+:LOGBOOK:
+CLOCK: [2024-03-30 Sat 08:15]
+:END:
+
+- Read Gabriella's post on nixos-rebuild switch
+- Try this
 ** TODO Add breakpoints in exercise choose and current exercises as well
 ** TODO Muscle information (what muscle is where and so on)
 ** TODO Emojis for categories in new exercise form

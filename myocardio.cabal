@@ -47,12 +47,11 @@ executable myocardio-exe
     , xml-conduit
     , xml-lens
     , data-default
-    , case-insensitive
     , lens
     , directory
     , bytestring
     , containers
-    , bifunctors
+    , wai-middleware-static
     , safe
     , directory
     , lucid2

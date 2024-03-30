@@ -64,6 +64,7 @@ import MyocardioApp.Database
     readDatabase,
   )
 import Network.HTTP.Types.Status (status400)
+import Network.Wai.Middleware.Static (addBase, isNotAbsolute, noDots, staticPolicy)
 import Network.Wai.Parse (FileInfo (fileContent, fileName))
 import Safe (maximumByMay)
 import System.Directory (createDirectoryIfMissing, removeFile)
@@ -72,7 +73,7 @@ import System.IO (FilePath, IO)
 import Text.Read (Read)
 import Text.XML (Document, Name, readFile, renderLBS)
 import Text.XML.Lens (attributeSatisfies, attrs, named, root)
-import Web.Scotty (ActionM, File, Parsable (parseParam, parseParamList), capture, file, files, finish, formParam, formParamMaybe, formParams, get, html, pathParam, post, queryParamMaybe, raw, readEither, redirect, regex, scotty, setHeader, status)
+import Web.Scotty (ActionM, File, Parsable (parseParam, parseParamList), capture, file, files, finish, formParam, formParamMaybe, formParams, get, html, middleware, pathParam, post, queryParamMaybe, raw, readEither, redirect, regex, scotty, setHeader, status)
 import Prelude (Double, Either (Left, Right), Enum (succ), Fractional ((/)), Num ((*), (+), (-)), RealFrac (round), Show (show), Traversable (traverse), realToFrac)
 
 instance (Parsable a) => Parsable (NE.NonEmpty a) where
@@ -118,6 +119,10 @@ htmlSkeleton page content = do
     L.head_ $ do
       L.meta_ [L.charset_ "utf-8"]
       L.meta_ [L.name_ "viewport", L.content_ "width=device-width, initial-scale=1"]
+      L.link_ [L.rel_ "apple-touch-icon", L.sizes_ "180x180", L.href_ "/apple-touch-icon.png"]
+      L.link_ [L.rel_ "icon", L.type_ "image/png", L.sizes_ "32x32", L.href_ "/favicon-32x32.png"]
+      L.link_ [L.rel_ "icon", L.type_ "image/png", L.sizes_ "16x16", L.href_ "/favicon-16x16.png"]
+      L.link_ [L.rel_ "manifest", L.href_ "/site.webmanifest"]
       L.title_ "myocardio - power up your routines"
       L.link_ [L.href_ "https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css", L.rel_ "stylesheet"]
       L.link_ [L.href_ "https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css", L.rel_ "stylesheet"]
@@ -678,7 +683,11 @@ pageCurrentHtml currentTime db category = htmlSkeleton PageCurrent $ do
 
 -- This path is changed by the Nix build to point to $out
 staticBasePath :: FilePath
-staticBasePath = "svgs/"
+staticBasePath = "static/"
+
+-- This path is changed by the Nix build to point to $out
+svgBasePath :: FilePath
+svgBasePath = "svgs/"
 
 data MuscleWithWeight = MuscleWithWeight
   { muscle :: Muscle,
@@ -702,7 +711,7 @@ applyWeight (MuscleWithWeight muscle' weight') =
 
 generateWeightedSvg :: (MonadIO m) => [MuscleWithWeight] -> String -> m BSL.ByteString
 generateWeightedSvg muscleWeights frontOrBack = do
-  oldDocument <- liftIO $ readFile def (staticBasePath <> "/" <> frontOrBack <> ".svg")
+  oldDocument <- liftIO $ readFile def (svgBasePath <> "/" <> frontOrBack <> ".svg")
   pure
     $ renderLBS
       def
@@ -930,3 +939,5 @@ main = scotty 3000 do
   post "/commit-workout" do
     modifyDb' \db -> db {currentTraining = [], pastExercises = db.currentTraining <> db.pastExercises}
     redirect "/"
+
+  middleware (staticPolicy (noDots <> isNotAbsolute <> addBase staticBasePath))
