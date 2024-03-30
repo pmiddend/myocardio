@@ -60,5 +60,27 @@
               inputsFrom = [ self.packages.${system}.myocardio.env ];
             };
           devShell = self.devShells.${system}.default;
+
+          nixosModules.myocardio3 = { pkgs, config, lib, ... }:
+            {
+              options.services.myocardio3 = {
+                enable = lib.mkEnableOption "enable myocardio3";
+              };
+
+              config = lib.mkIf config.services.myocardio3.enable {
+                systemd.services.myocardio3 = let pkg = self.packages.${system}.default; in {
+                  enable = true;
+                  serviceConfig = {
+                    Type = "simple";
+                    User = "pmidden";
+                    ExecStart = "${pkg}/bin/myocardio-exe";
+                    Restart = "always";
+                  };
+                  wantedBy = [ "multi-user.target" ];
+                  after = [ "network.target" ];
+                };
+
+              };
+            };
         });
 }
