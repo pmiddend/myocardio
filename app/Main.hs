@@ -641,12 +641,12 @@ exerciseHistoryHtml currentTime db category = do
   L.h1_ do
     iconHtml "clipboard-data-fill"
     L.span_ "Training state"
-  L.div_ [L.class_ "row"] do
+  L.div_ [L.class_ "row mb-3"] do
     L.div_ [L.class_ "col-6 text-center"] do
-      L.h5_ "Front"
+      L.h5_ "Anterior View"
       L.img_ [L.src_ "/muscles/front.svg", L.class_ "img-fluid"]
     L.div_ [L.class_ "col-6 text-center"] do
-      L.h5_ "Back"
+      L.h5_ "Posterior View"
       L.img_ [L.src_ "/muscles/back.svg", L.class_ "img-fluid"]
   exerciseHistoryForCategoryHtml currentTime db category
 
@@ -707,9 +707,6 @@ generateWeightedSvg muscleWeights frontOrBack = do
     $ renderLBS
       def
     $ foldr applyWeight oldDocument muscleWeights
-
-lerp :: (Fractional a) => a -> a -> a -> a -> a -> a
-lerp x minPre' maxPre' min' max' = (x - minPre') / (maxPre' - minPre') * (max' - min') + min'
 
 main :: IO ()
 main = scotty 3000 do

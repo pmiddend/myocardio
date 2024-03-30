@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <svg
-   viewBox="0 0 432.07557 985.10732"
+   viewBox="0 0 470.46656 985.10732"
    height="260.64297mm"
-   width="114.31999mm"
+   width="124.47761mm"
    version="1.1"
    id="svg3336"
    xmlns="http://www.w3.org/2000/svg"
@@ -30,7 +30,7 @@
   <path
      style="fill:#ff0000;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
      d="m 183.60763,98.299025 c -1.44818,11.520755 -1.11756,26.762235 -0.53891,39.733975 5.01649,12.1147 20.46989,7.17145 30.6237,8.05333 10.01626,0.12736 32.91647,5.00427 32.61517,-10.34841 2.63167,-9.96462 2.1078,-22.61803 -1.4486,-33.85134 -6.25578,-9.806275 -20.28256,-4.518465 -30.04207,-5.536745 -12.41208,0.25014 -28.89885,-0.96499 -31.20929,1.94919 z"
-     id="Neck" />
+     id="Neck-1" />
   <path
      id="Biceps-2"
      style="fill:#ff0000;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
@@ -58,15 +58,15 @@
   <path
      style="fill:#ff0000;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
      d="m 179.37136,149.77191 c -19.30576,14.36981 -43.61865,18.24854 -66.34722,24.17352 -15.797151,12.63415 10.20347,19.37276 23.7101,16.20819 19.47944,-2.14067 41.27667,1.72955 48.68242,-18.21211 2.75331,-7.68358 1.07807,-17.40761 -6.0453,-22.1696 z"
-     id="Shoulder-1" />
+     id="Shoulders-1" />
   <path
      style="fill:#ff0000;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
      d="m 251.85949,148.93213 c 19.30576,14.36981 43.61865,18.24854 66.34722,24.17352 15.79715,12.63415 -10.20347,19.37276 -23.7101,16.20819 -19.47944,-2.14067 -41.27667,1.72955 -48.68242,-18.21211 -2.75331,-7.68358 -1.07807,-17.40761 6.0453,-22.1696 z"
-     id="shoulder-2" />
+     id="Shoulders-2" />
   <path
      style="fill:#ff0000;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
      d="m 160.76425,326.9003 c -4.69777,42.62753 -6.71562,83.58048 -2.80155,124.33754 22.57608,34.70564 75.65428,31.96592 108.89181,16.23862 21.51519,-33.03808 12.15875,-76.60234 13.82758,-116.34033 -2.94175,-34.90819 -35.12757,-21.96584 -64.59481,-22.86332 -12.43528,-0.56504 -40.80654,-5.35766 -55.32303,-1.37251 z"
-     id="Core" />
+     id="Core-1" />
   <path
      style="fill:#ff0000;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
      d="m 138.67336,511.93048 c 19.02699,3.4206 41.08651,6.53867 56.86189,16.63657 5.49199,21.98202 -22.74288,16.86005 -35.80548,15.4422 -13.11391,-2.91899 -38.87618,-6.89144 -35.23181,-25.01356 1.84156,-6.12791 8.31599,-8.53459 14.1754,-7.06521 z"
@@ -107,4 +107,158 @@
      style="fill:#ff0000;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
      d="m 289.05589,896.64273 c -6.01576,-11.22071 -27.44791,-10.4031 -30.46056,2.66264 -0.80126,15.46199 25.79598,17.86519 29.40197,3.36983 0.27795,-2.02431 0.73769,-4.0157 1.05859,-6.03247 z"
      id="Ankles-2" />
+  <text
+     xml:space="preserve"
+     style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:26.6667px;line-height:1.25;font-family:'Averia Serif Libre';-inkscape-font-specification:'Averia Serif Libre';letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none"
+     x="276.79248"
+     y="110.13628"
+     id="text1"><tspan
+       id="tspan1"
+       x="276.79248"
+       y="110.13628"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:26.6667px;font-family:sans-serif;-inkscape-font-specification:sans-serif">Neck</tspan></text>
+  <path
+     style="fill:none;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-dasharray:2, 1;stroke-dashoffset:0;stroke-opacity:1"
+     d="m 248.88596,107.29522 28.18738,-6.32523"
+     id="path1" />
+  <text
+     xml:space="preserve"
+     style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:26.6667px;line-height:1.25;font-family:'Averia Serif Libre';-inkscape-font-specification:'Averia Serif Libre';letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none"
+     x="315.96741"
+     y="158.38573"
+     id="text2"><tspan
+       id="tspan2"
+       x="315.96741"
+       y="158.38573"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:26.6667px;font-family:sans-serif;-inkscape-font-specification:sans-serif">Shoulders</tspan></text>
+  <text
+     xml:space="preserve"
+     style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:26.6667px;line-height:1.25;font-family:'Averia Serif Libre';-inkscape-font-specification:'Averia Serif Libre';letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none"
+     x="370.20117"
+     y="205.53975"
+     id="text3"><tspan
+       id="tspan3"
+       x="370.20117"
+       y="205.53975"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:26.6667px;font-family:sans-serif;-inkscape-font-specification:sans-serif">Pecs</tspan></text>
+  <text
+     xml:space="preserve"
+     style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:26.6667px;line-height:1.25;font-family:'Averia Serif Libre';-inkscape-font-specification:'Averia Serif Libre';letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none"
+     x="384.17737"
+     y="330.297"
+     id="text4"><tspan
+       id="tspan4"
+       x="384.17737"
+       y="330.297"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:26.6667px;font-family:sans-serif;-inkscape-font-specification:sans-serif">Biceps</tspan></text>
+  <text
+     xml:space="preserve"
+     style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:26.6667px;line-height:1.25;font-family:'Averia Serif Libre';-inkscape-font-specification:'Averia Serif Libre';letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none"
+     x="402.96234"
+     y="424.05133"
+     id="text5"><tspan
+       id="tspan5"
+       x="402.96234"
+       y="424.05133"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:26.6667px;font-family:sans-serif;-inkscape-font-specification:sans-serif">Wrist</tspan></text>
+  <text
+     xml:space="preserve"
+     style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:26.6667px;line-height:1.25;font-family:'Averia Serif Libre';-inkscape-font-specification:'Averia Serif Libre';letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none"
+     x="188.53223"
+     y="387.77771"
+     id="text6"><tspan
+       id="tspan6"
+       x="188.53223"
+       y="387.77771"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:26.6667px;font-family:sans-serif;-inkscape-font-specification:sans-serif">Core</tspan></text>
+  <text
+     xml:space="preserve"
+     style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:26.6667px;line-height:1.25;font-family:'Averia Serif Libre';-inkscape-font-specification:'Averia Serif Libre';letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none"
+     x="80.232384"
+     y="494.48611"
+     id="text7"><tspan
+       id="tspan7"
+       x="80.232384"
+       y="494.48611"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:26.6667px;font-family:sans-serif;-inkscape-font-specification:sans-serif">Hip Flexors</tspan></text>
+  <text
+     xml:space="preserve"
+     style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:26.6667px;line-height:1.25;font-family:'Averia Serif Libre';-inkscape-font-specification:'Averia Serif Libre';letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none"
+     x="241.58163"
+     y="501.65927"
+     id="text8"><tspan
+       id="tspan8"
+       x="241.58163"
+       y="501.65927"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:26.6667px;font-family:sans-serif;-inkscape-font-specification:sans-serif">Adductors</tspan></text>
+  <text
+     xml:space="preserve"
+     style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:26.6667px;line-height:1.25;font-family:'Averia Serif Libre';-inkscape-font-specification:'Averia Serif Libre';letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none"
+     x="321.33655"
+     y="632.40576"
+     id="text9"><tspan
+       id="tspan9"
+       x="321.33655"
+       y="632.40576"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:26.6667px;font-family:sans-serif;-inkscape-font-specification:sans-serif">Quads</tspan></text>
+  <text
+     xml:space="preserve"
+     style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:26.6667px;line-height:1.25;font-family:'Averia Serif Libre';-inkscape-font-specification:'Averia Serif Libre';letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none"
+     x="343.30518"
+     y="818.07977"
+     id="text10"><tspan
+       id="tspan10"
+       x="343.30518"
+       y="818.07977"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:26.6667px;font-family:sans-serif;-inkscape-font-specification:sans-serif">Tibialis</tspan><tspan
+       x="343.30518"
+       y="852.27252"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:26.6667px;font-family:sans-serif;-inkscape-font-specification:sans-serif"
+       id="tspan12">Anterior</tspan></text>
+  <text
+     xml:space="preserve"
+     style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:26.6667px;line-height:1.25;font-family:'Averia Serif Libre';-inkscape-font-specification:'Averia Serif Libre';letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none"
+     x="304.28253"
+     y="911.38586"
+     id="text11"><tspan
+       id="tspan11"
+       x="304.28253"
+       y="911.38586"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:26.6667px;font-family:sans-serif;-inkscape-font-specification:sans-serif">Ankles</tspan></text>
+  <path
+     style="fill:none;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-dasharray:2, 1;stroke-dashoffset:0;stroke-opacity:1"
+     d="M 292.08018,164.4799 315.3055,149.37048"
+     id="path12" />
+  <path
+     style="fill:none;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-dasharray:2, 1;stroke-dashoffset:0;stroke-opacity:1"
+     d="m 293.03468,225.63154 74.6736,-28.26282"
+     id="path13" />
+  <path
+     style="fill:none;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-dasharray:2, 1;stroke-dashoffset:0;stroke-opacity:1"
+     d="m 368.83382,322.55021 15.83816,-3.4913"
+     id="path14" />
+  <path
+     style="fill:none;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-dasharray:2, 1;stroke-dashoffset:0;stroke-opacity:1"
+     d="m 386.67176,422.80142 18.64107,-4.01681"
+     id="path15" />
+  <path
+     style="fill:none;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-dasharray:2, 1;stroke-dashoffset:0;stroke-opacity:1"
+     d="m 154.86778,510.97704 -0.89562,-11.78266"
+     id="path16" />
+  <path
+     style="fill:none;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-dasharray:2, 1;stroke-dashoffset:0;stroke-opacity:1"
+     d="M 227.95218,522.33332 243.09291,504.7096"
+     id="path17" />
+  <path
+     style="fill:none;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-dasharray:2, 1;stroke-dashoffset:0;stroke-opacity:1"
+     d="m 297.402,800.7524 36.48576,7.45433"
+     id="path18" />
+  <path
+     style="fill:none;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-dasharray:2, 1;stroke-dashoffset:0;stroke-opacity:1"
+     d="m 298.21413,620.28923 22.27398,2.39709"
+     id="path19" />
+  <path
+     style="fill:none;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-dasharray:2, 1;stroke-dashoffset:0;stroke-opacity:1"
+     d="m 291.46776,902.73697 11.94272,0.14233"
+     id="path20" />
 </svg>
