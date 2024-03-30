@@ -719,6 +719,7 @@ main = scotty 3000 do
   get (regex "/muscles/([^\\.]*).svg") do
     db <- readDatabase
     frontOrBack <- pathParam "1"
+    currentTime <- liftIO getCurrentTime
     let lastExercises :: [(Muscle, Maybe UTCTime)]
         lastExercises = musclesAndLastExerciseSorted (filter (\pe -> pe.exercise.category == Strength) db.pastExercises)
         muscleToCategory :: (Muscle, Maybe UTCTime) -> Either Muscle (Muscle, UTCTime)
@@ -732,10 +733,10 @@ main = scotty 3000 do
             Just musclesWithTimeNE ->
               let minTime :: UTCTime
                   minTime = snd $ minimumBy (comparing snd) musclesWithTimeNE
-                  maxTime :: UTCTime
-                  maxTime = snd $ maximumBy (comparing snd) musclesWithTimeNE
+                  -- maxTime :: UTCTime
+                  -- maxTime = snd $ maximumBy (comparing snd) musclesWithTimeNE
                   minMaxSpan :: NominalDiffTime
-                  minMaxSpan = maxTime `diffUTCTime` minTime
+                  minMaxSpan = currentTime `diffUTCTime` minTime
                   lerpMin :: Double
                   lerpMin =
                     if null musclesWithoutTime'

@@ -107,7 +107,11 @@ CLOCK: [2024-03-24 Sun 09:34]--[2024-03-24 Sun 11:58] =>  2:24
   + [X] Doublecheck the results — does it make sense?
     * Core should have ID "core-1"
     * Shoulders were wrong as well
-  + [ ] Muscles that aren't trained for a long time should have a lower score as well
+  + [X] Muscles that aren't trained for a long time should have a lower score as well
+    * lerp from 0 to 1 still (depending on time), but decrease score (red is 0 on the hsv scale) for each day
+    * take the current day as max time?
+    * previously, if last training was 3 days ago, and the one before that 6, then we'd interpolate between 0 and 3 days
+    * afterwards we're interpolating between 6 days
   + [ ] Which muscle group do I train more often (relatively plotted again)?
   + [ ] Think about what to visualize exactly
     * Currently sore muscles
