@@ -22,7 +22,7 @@ import qualified Data.ByteString.Lazy as BSL
 import Data.Default (def)
 import Data.Either (partitionEithers)
 import Data.Eq (Eq ((/=)), (==))
-import Data.Foldable (Foldable (elem, foldr, null), find, forM_, mapM_, maximumBy, minimumBy, notElem)
+import Data.Foldable (Foldable (elem, foldr, null), find, forM_, mapM_, minimumBy, notElem)
 import Data.Function (($), (.))
 import Data.Functor ((<$>))
 import Data.Int (Int)
