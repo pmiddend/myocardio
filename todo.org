@@ -111,15 +111,29 @@ CLOCK: [2024-03-24 Sun 09:34]--[2024-03-24 Sun 11:58] =>  2:24
     * take the current day as max time?
     * previously, if last training was 3 days ago, and the one before that 6, then we'd interpolate between 0 and 3 days
     * afterwards we're interpolating between 6 days
-** TODO Exercises for tibialis anterior
-** TODO Show soreness history per muscle group
+** DONE Rebase on NixOS-24.05
+CLOSED: [2024-06-22 Sat 07:57]
+:LOGBOOK:
+CLOCK: [2024-06-22 Sat 07:46]--[2024-06-22 Sat 07:57] =>  0:11
+CLOCK: [2024-06-22 Sat 07:25]--[2024-06-22 Sat 07:40] =>  0:15
+:END:
+
+- changed in flake.nix, then changed scotty to 0.22, rebuilt
+** DONE Copy remote DB to localhost, then try starting the program
+CLOSED: [2024-06-22 Sat 07:46]
+:LOGBOOK:
+CLOCK: [2024-06-22 Sat 07:40]--[2024-06-22 Sat 07:46] =>  0:06
+:END:
+** TODO Add "change intensity after adding to current"
 ** TODO Better Nix deployment
 :LOGBOOK:
-CLOCK: [2024-03-30 Sat 08:15]
+CLOCK: [2024-03-30 Sat 08:15]--[2024-03-30 Sat 08:25] =>  0:10
 :END:
 
 - Read Gabriella's post on nixos-rebuild switch
 - Try this
+** TODO Remove mobility/endurance concepts
+** TODO Show soreness history per muscle group
 ** TODO Add breakpoints in exercise choose and current exercises as well
 ** TODO Muscle information (what muscle is where and so on)
 ** TODO Emojis for categories in new exercise form

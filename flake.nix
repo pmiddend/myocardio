@@ -6,7 +6,7 @@
   description = "myocardio";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs";
+    nixpkgs.url = "nixpkgs/nixos-24.05";
     flake-utils.url = "github:numtide/flake-utils";
   };
 
@@ -29,7 +29,7 @@
           packages.${packageName} =
             (haskellPackages.callCabal2nix packageName self
               {
-                scotty = haskellPackages.scotty_0_21;
+                scotty = haskellPackages.scotty_0_22;
               }).overrideAttrs (final: prev: {
               postPatch = ''
                 sed -i -e 's#staticBasePath = .*#staticBasePath = "${placeholder "out"}/static"#' app/Main.hs

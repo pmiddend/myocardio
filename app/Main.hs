@@ -602,7 +602,7 @@ getUploadedFileDir = do
   uploadedFilesBaseDir <- liftIO $ getUserDataDir "myocardio3"
   pure (uploadedFilesBaseDir <> "/uploaded-files")
 
-uploadSingleFile :: (MonadIO m) => File -> m FileReference
+uploadSingleFile :: (MonadIO m) => File BSL.ByteString -> m FileReference
 uploadSingleFile (_, fileInfo) = do
   let fileHashText :: Text
       fileHashText = TE.decodeUtf8 $ Base16.encode (hashlazy (fileContent fileInfo))
